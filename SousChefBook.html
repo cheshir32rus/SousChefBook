@@ -1,0 +1,2295 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>SousChefBook — Тома 1–2. Школа су-шефа и шефа ресторана</title>
+
+<style>
+  :root {
+    --bg: #0a0908;
+    --bg-card: rgba(28,26,24,0.72);
+    --accent: #c9b896;
+    --accent-dim: rgba(201,184,150,0.12);
+    --accent-glow: rgba(201,184,150,0.18);
+    --text: #e8e4df;
+    --text-dim: #9a9590;
+    --border: rgba(201,184,150,0.15);
+    --success: #7fb069;
+    --danger: #c75146;
+    --warning: #e9c46a;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+    line-height: 1.6;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+  }
+  .app { position: relative; z-index: 1; }
+  .header {
+    position: fixed; top: 0; left: 0; right: 0;
+    background: rgba(10,9,8,0.92);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    z-index: 100;
+    padding: 12px 16px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .header-title {
+    font-family: 'Georgia', 'Times New Roman', 'Noto Serif', serif;
+    font-size: 1.15rem;
+    color: var(--accent);
+    letter-spacing: 0.5px;
+  }
+  .header-sub { font-size: 0.7rem; color: var(--text-dim); font-weight: 300; }
+  .menu-btn, .search-btn {
+    width: 40px; height: 40px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    font-size: 1.2rem;
+    backdrop-filter: blur(12px);
+  }
+  .sidebar {
+    position: fixed; top: 0; left: 0; bottom: 0; width: 300px;
+    background: rgba(14,13,12,0.97);
+    backdrop-filter: blur(30px);
+    border-right: 1px solid var(--border);
+    z-index: 200;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    overflow-y: auto;
+    padding: 20px 0;
+  }
+  .sidebar.open { transform: translateX(0); }
+  .sidebar-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+    z-index: 199; opacity: 0; pointer-events: none;
+    transition: opacity 0.3s;
+  }
+  .sidebar-overlay.open { opacity: 1; pointer-events: all; }
+  .sidebar-header {
+    padding: 0 20px 20px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 10px;
+  }
+  .sidebar-title {
+    font-family: 'Georgia', 'Times New Roman', 'Noto Serif', serif;
+    font-size: 1.3rem;
+    color: var(--accent);
+  }
+  .progress-bar {
+    height: 4px; background: rgba(201,184,150,0.1);
+    border-radius: 2px; margin-top: 10px; overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%; background: var(--accent);
+    border-radius: 2px; transition: width 0.5s ease;
+  }
+  .progress-text { font-size: 0.7rem; color: var(--text-dim); margin-top: 6px; }
+  .nav-item {
+    padding: 14px 20px;
+    cursor: pointer;
+    border-left: 3px solid transparent;
+    transition: all 0.2s;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .nav-item:hover { background: rgba(201,184,150,0.05); }
+  .nav-item.active { border-left-color: var(--accent); background: rgba(201,184,150,0.08); }
+  .nav-num {
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.75rem; font-weight: 600; color: var(--accent);
+    flex-shrink: 0;
+  }
+  .nav-item.active .nav-num { background: var(--accent); color: var(--bg); }
+  .nav-text { font-size: 0.85rem; font-weight: 500; }
+  .nav-check {
+    margin-left: auto; width: 18px; height: 18px;
+    border-radius: 50%; border: 1.5px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.65rem; color: transparent;
+  }
+  .nav-check.done { border-color: var(--success); color: var(--success); }
+  .main { padding: 76px 16px 100px; max-width: 800px; margin: 0 auto; }
+  .module-header { margin-bottom: 24px; }
+  .module-num {
+    font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px;
+    color: var(--accent); margin-bottom: 6px;
+  }
+  .module-title {
+    font-family: 'Georgia', 'Times New Roman', 'Noto Serif', serif;
+    font-size: 1.6rem; font-weight: 600;
+    line-height: 1.3;
+  }
+  .module-time {
+    font-size: 0.75rem; color: var(--text-dim); margin-top: 8px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .card {
+    background: var(--bg-card);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 16px;
+    transition: box-shadow 0.3s;
+  }
+  .card:hover { box-shadow: 0 4px 24px rgba(201,184,150,0.06); }
+  .card-title {
+    font-family: 'Georgia', 'Times New Roman', 'Noto Serif', serif;
+    font-size: 1.15rem; color: var(--accent);
+    margin-bottom: 12px; display: flex; align-items: center; gap: 10px;
+  }
+  .card-icon { font-size: 1.3rem; }
+  .card p { font-size: 0.9rem; color: var(--text); margin-bottom: 10px; }
+  .card ul { margin-left: 18px; margin-bottom: 12px; }
+  .card li { font-size: 0.88rem; color: var(--text); margin-bottom: 6px; }
+  .card strong { color: var(--accent); font-weight: 600; }
+  .highlight {
+    background: rgba(201,184,150,0.06);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 10px 10px 0;
+    padding: 14px 16px;
+    margin: 14px 0;
+    font-size: 0.88rem;
+  }
+  .highlight-danger {
+    background: rgba(199,81,70,0.08);
+    border-left-color: var(--danger);
+  }
+  .highlight-success {
+    background: rgba(127,176,105,0.08);
+    border-left-color: var(--success);
+  }
+  .formula {
+    background: rgba(10,9,8,0.6);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.85rem;
+    color: var(--accent);
+    text-align: center;
+    margin: 12px 0;
+    letter-spacing: 0.5px;
+  }
+  .checklist-item {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(201,184,150,0.06);
+    cursor: pointer;
+  }
+  .checklist-item:last-child { border-bottom: none; }
+  .check-box {
+    width: 20px; height: 20px;
+    border: 2px solid var(--border);
+    border-radius: 6px;
+    flex-shrink: 0; margin-top: 2px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+  }
+  .check-box.checked {
+    background: var(--success); border-color: var(--success);
+    color: white; font-size: 0.75rem;
+  }
+  .check-text { font-size: 0.88rem; color: var(--text); }
+  .check-text.done { text-decoration: line-through; color: var(--text-dim); }
+  .quiz-container { margin-top: 8px; }
+  .quiz-question {
+    font-weight: 600; font-size: 0.95rem;
+    margin-bottom: 14px; color: var(--text);
+  }
+  .quiz-options { display: flex; flex-direction: column; gap: 10px; }
+  .quiz-option {
+    background: rgba(10,9,8,0.5);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    cursor: pointer;
+    font-size: 0.88rem;
+    transition: all 0.2s;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .quiz-option:hover { border-color: var(--accent); background: rgba(201,184,150,0.05); }
+  .quiz-option.selected { border-color: var(--accent); background: rgba(201,184,150,0.1); }
+  .quiz-option.correct { border-color: var(--success); background: rgba(127,176,105,0.1); }
+  .quiz-option.wrong { border-color: var(--danger); background: rgba(199,81,70,0.1); }
+  .opt-letter {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.75rem; font-weight: 600;
+    flex-shrink: 0;
+  }
+  .quiz-option.selected .opt-letter { border-color: var(--accent); color: var(--accent); }
+  .quiz-option.correct .opt-letter { border-color: var(--success); color: var(--success); }
+  .quiz-option.wrong .opt-letter { border-color: var(--danger); color: var(--danger); }
+  .quiz-explanation {
+    margin-top: 12px; padding: 14px;
+    background: rgba(201,184,150,0.05);
+    border-radius: 10px;
+    font-size: 0.85rem; color: var(--text-dim);
+    display: none;
+  }
+  .quiz-explanation.show { display: block; }
+  .quiz-nav {
+    display: flex; justify-content: space-between; margin-top: 20px;
+  }
+  .btn {
+    padding: 12px 24px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--accent);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+    font-size: 0.85rem; font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    backdrop-filter: blur(12px);
+  }
+  .btn:hover { background: rgba(201,184,150,0.1); box-shadow: 0 0 20px var(--accent-glow); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-primary { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+  .btn-primary:hover { background: #d4c4a4; }
+  .quiz-result {
+    text-align: center; padding: 30px 20px;
+  }
+  .quiz-result-score {
+    font-family: 'Georgia', 'Times New Roman', 'Noto Serif', serif;
+    font-size: 3rem; color: var(--accent);
+  }
+  .quiz-result-text { font-size: 1rem; margin-top: 10px; }
+  .tabs {
+    display: flex; gap: 8px; margin-bottom: 20px;
+    overflow-x: auto; padding-bottom: 4px;
+  }
+  .tab {
+    padding: 10px 18px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text-dim);
+    font-size: 0.8rem; font-weight: 500;
+    cursor: pointer; white-space: nowrap;
+    backdrop-filter: blur(12px);
+  }
+  .tab.active { border-color: var(--accent); color: var(--accent); background: rgba(201,184,150,0.1); }
+  .search-overlay {
+    position: fixed; inset: 0; background: rgba(10,9,8,0.97);
+    z-index: 300; display: none; flex-direction: column;
+    padding: 20px;
+  }
+  .search-overlay.open { display: flex; }
+  .search-input {
+    width: 100%; padding: 16px 20px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    color: var(--text);
+    font-size: 1rem; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+    outline: none;
+  }
+  .search-input:focus { border-color: var(--accent); }
+  .search-results { margin-top: 20px; overflow-y: auto; flex: 1; }
+  .search-result-item {
+    padding: 14px; border-bottom: 1px solid var(--border);
+    cursor: pointer;
+  }
+  .search-result-item:hover { background: rgba(201,184,150,0.05); }
+  .search-result-title { font-weight: 600; color: var(--accent); font-size: 0.9rem; }
+  .search-result-snippet { font-size: 0.8rem; color: var(--text-dim); margin-top: 4px; }
+  .table-wrap { overflow-x: auto; margin: 14px 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+  th { color: var(--accent); font-weight: 600; background: rgba(201,184,150,0.05); }
+  td { color: var(--text); }
+  .footer-nav {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: rgba(10,9,8,0.95);
+    backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border);
+    padding: 12px 16px;
+    display: flex; justify-content: space-between; align-items: center;
+    z-index: 100;
+  }
+  .footer-btn { font-size: 0.8rem; color: var(--text-dim); background: none; border: none; cursor: pointer; }
+  .footer-btn.active { color: var(--accent); }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  .fade-in { animation: fadeIn 0.4s ease; }
+  .tag {
+    display: inline-block; padding: 4px 10px;
+    border-radius: 6px; font-size: 0.7rem; font-weight: 600;
+    margin-right: 6px; margin-bottom: 6px;
+  }
+  .tag-theory { background: rgba(201,184,150,0.1); color: var(--accent); border: 1px solid var(--accent-dim); }
+  .tag-practice { background: rgba(127,176,105,0.1); color: var(--success); border: 1px solid rgba(127,176,105,0.2); }
+  .tag-test { background: rgba(233,196,106,0.1); color: var(--warning); border: 1px solid rgba(233,196,106,0.2); }
+  .case-box {
+    background: rgba(201,184,150,0.04);
+    border: 1px dashed var(--border);
+    border-radius: 14px;
+    padding: 18px;
+    margin: 14px 0;
+  }
+  .case-title {
+    font-family: 'Georgia', 'Times New Roman', 'Noto Serif', serif;
+    font-size: 1rem; color: var(--accent);
+    margin-bottom: 10px;
+  }
+  .volume-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 6px;
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    background: var(--accent);
+    color: var(--bg);
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+  .volume-badge.planned {
+    background: transparent;
+    color: var(--text-dim);
+    border: 1px dashed var(--border);
+  }
+  .volumes-block {
+    margin: 14px 20px 0;
+    padding: 14px;
+    background: rgba(201,184,150,0.04);
+    border: 1px dashed var(--border);
+    border-radius: 12px;
+  }
+  .volumes-title {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--accent);
+    margin-bottom: 10px;
+  }
+  .volume-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+    font-size: 0.78rem;
+    color: var(--text-dim);
+    border-bottom: 1px solid rgba(201,184,150,0.06);
+  }
+  .volume-row:last-child { border-bottom: none; }
+  .volume-row.current { color: var(--text); }
+  .volume-row .vol-num {
+    width: 22px; height: 22px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.65rem; font-weight: 700; color: var(--accent);
+    flex-shrink: 0;
+  }
+  .volume-row.current .vol-num { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+  @media (min-width: 768px) {
+    .main { padding: 90px 40px 100px; }
+    .module-title { font-size: 2rem; }
+    .card { padding: 28px; }
+  }
+
+</style>
+<meta name="theme-color" content="#0a0908">
+<link rel="manifest" href="manifest.json">
+<base target="_blank">
+</head>
+<body>
+<div class="app">
+  <header class="header">
+    <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+    <div>
+      <div class="header-title">SousChefBook<span class="volume-badge">Тома 1–2</span></div>
+      <div class="header-sub">Школа су-шефа и шефа · v2.0</div>
+    </div>
+    <button class="search-btn" onclick="toggleSearch()">🔍</button>
+  </header>
+  <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-title">Школа су-шефа</div>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="progress-text" id="progressText">0% пройдено</div>
+    </div>
+    <div class="volumes-block">
+      <div class="volumes-title">📚 Библиотека</div>
+      <div class="volume-row current">
+        <div class="vol-num">1</div>
+        <div>Су-шеф → Шеф<br><span style="font-size:0.68rem;">15 модулей · в файле</span></div>
+      </div>
+      <div class="volume-row current">
+        <div class="vol-num">2</div>
+        <div>Шеф ресторана<br><span style="font-size:0.68rem;">6 модулей · в файле</span></div>
+      </div>
+      <div class="volume-row">
+        <div class="vol-num">3</div>
+        <div>Бренд-шеф и кухни сети<br><span style="font-size:0.68rem;">В планах</span></div>
+      </div>
+    </div>
+    <div id="navList"></div>
+  </nav>
+  <div class="search-overlay" id="searchOverlay">
+    <div style="display:flex;gap:12px;align-items:center;">
+      <input type="text" class="search-input" id="searchInput" placeholder="Поиск по базе знаний..." oninput="doSearch()">
+      <button class="btn" onclick="toggleSearch()">✕</button>
+    </div>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+  <main class="main" id="main"></main>
+  <div class="footer-nav">
+    <button class="footer-btn" id="btnPrev" onclick="prevModule()">← Предыдущий</button>
+    <span style="font-size:0.75rem;color:var(--text-dim);" id="footerCounter">1 / 15</span>
+    <button class="footer-btn" id="btnNext" onclick="nextModule()">Следующий →</button>
+  </div>
+</div>
+<script>
+const modules = [
+  {
+    id: 1,
+    title: "Роль шефа: от лучшего повара до управленца",
+    time: "45 мин",
+    theory: `<div class="card fade-in">
+        <div class="card-title"><span class="card-icon">🎯</span> Главный сдвиг: шеф готовит не блюда, а систему</div>
+        <p>Су-шеф — лучший повар на линии. Шеф — человек, при котором <strong>любой</strong> повар готовит как лучший. Это два разных мастерства, и переход между ними — самый сложный карьерный шаг на кухне.</p>
+        <div class="table-wrap">
+          <table>
+            <tr><th></th><th>Су-шеф</th><th>Шеф</th></tr>
+            <tr><td>Фокус</td><td>Смена, линия, скорость</td><td>Недели, меню, экономика, люди</td></tr>
+            <tr><td>Успех</td><td>Прошёл пик без провалов</td><td>Кухня работает без его рук</td></tr>
+            <tr><td>Инструменты</td><td>Нож, вок-горелка, гриль</td><td>Техкарты, график, фудкост, слово</td></tr>
+            <tr><td>Команда</td><td>Контролирует</td><td>Выращивает</td></tr>
+            <tr><td>Ошибка</td><td>«Сам быстрее сделаю»</td><td>«Всё держу в голове»</td></tr>
+          </table>
+        </div>
+        <div class="highlight highlight-danger">
+          <strong>Ловушка №1:</strong> шеф, который каждый вечер спасает линию своими руками, не шеф — это су-шеф с другой должностью. Кухня, зависящая от рук шефа, умирает при первой его болезни.
+        </div>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">📊</span> Что должен контролировать шеф</div>
+        <ul>
+          <li><strong>Фудкост</strong> — ежедневно (факт vs план, отклонения — с причиной)</li>
+          <li><strong>Списания</strong> — раз в неделю анализ: где, кто, почему</li>
+          <li><strong>Техкарты</strong> — актуальность цен, сезонных замен, фото-стандартов</li>
+          <li><strong>Команда</strong> — грейды, аттестации, конфликты, текучка</li>
+          <li><strong>Гигиена</strong> — журналы, лаборатория, аудит раз в месяц</li>
+          <li><strong>Меню</strong> — продажи по позициям, маржинальность, «собаки»</li>
+        </ul>
+        <div class="formula">Правило делегирования: если задачу выполняют правильно 3 раза подряд — она уходит с твоего стола навсегда</div>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">🗓️</span> День шефа: как распределяется время</div>
+        <ul>
+          <li><strong>09:00–10:00</strong> — обход кухни, заготовки, план дня, сверка заявок</li>
+          <li><strong>10:00–12:00</strong> — работа с документами: фудкост, заявки поставщикам, техкарты</li>
+          <li><strong>12:00–15:00</strong> — развитие: обучение поваров, тестирование новинок, встреча с поставщиками</li>
+          <li><strong>15:00–16:00</strong> — брифинг перед вечером, расстановка по станциям</li>
+          <li><strong>16:00–23:00</strong> — линия (в пик — присутствие, но не руки в тарелках)</li>
+        </ul>
+        <div class="highlight highlight-success">
+          <strong>Метрика взросления:</strong> доля дневных часов, которые шеф проводит НА линии. У су-шефа это 80%, у зрелого шефа — 30%. Разница уходит в развитие команды и экономику.
+        </div>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">📚</span> Материалы для углублённого изучения</div>
+        <ul>
+          <li><strong>«Управление кухней», Виолетта Гвоздовская</strong> — главная книга перехода су-шеф → шеф</li>
+          <li><strong>«Letters to a Young Chef», Дэниел Булюд</strong> — письма молодому шефу о ремесле и управлении</li>
+          <li><strong>«Kitchen Confidential», Энтони Бурден</strong> — анатомия профессии (чего не делать)</li>
+        </ul>
+      </div>`,
+    checklist: [
+      "Определить свои текущие доли: сколько времени руки vs голова",
+      "Списать 5 задач, которые делаете сами, но должны делегировать",
+      "Настроить ежедневный контроль фудкоста (15 минут утром)",
+      "Провести брифинг команды о стандартах, а не о настроении",
+      "Составить план: какие станции команда ведёт без ваших рук"
+    ],
+    quiz: [
+      { q: "Главное отличие шефа от су-шефа?", options: ["Шеф готовит лучше", "Шеф строит систему, где готовят другие", "Шеф больше зарабатывает", "Шеф реже моет полы"], correct: 1, explanation: "Шеф готовит систему: людей, техкарты, экономику. Если качество зависит от его рук — это ещё су-шеф с большим эго." },
+      { q: "Какая доля времени зрелого шефа — работа руками на линии?", options: ["80%", "50%", "30%", "0% — шеф не готовит"], correct: 2, explanation: "Около 30% в пиковые часы. Остальное — команда, экономика, развитие. Шеф не исчезает с линии, но не является её заложником." },
+      { q: "Когда задачу можно считать делегированной навсегда?", options: ["Когда объяснил один раз", "Когда выполнили правильно 3 раза подряд", "Когда подписал приказ", "Никогда — контролирую всегда"], correct: 1, explanation: "3 успешных повторения подряд = навык закреплён. Дальше контроль превращается в выборочные проверки." },
+      { q: "Что проверяет шеф каждое утро в первую очередь?", options: ["Свежесть зелени", "Фудкост вчерашнего дня и план на сегодня", "Расстановку ножей", "Отзывы гостей"], correct: 1, explanation: "Экономика дня: фудкост, списания, заявки. Это определяет всё остальное — от объёма заготовок до расстановки людей." },
+      { q: "Ловушка «шеф-спасатель» ведёт к:", options: ["Росту авторитета", "Зависимости кухни от одного человека", "Быстрому карьерному росту", "Снижению фудкоста"], correct: 1, explanation: "Кухня, которую каждый вечер спасают руки шефа, рухнет при его первой болезли или отпуске. Спасение — обучение, а не героизм." }
+    ]
+  },
+  {
+    id: 2,
+    title: "Организация кухни: станции и потоки",
+    time: "50 мин",
+    theory: `<div class="card fade-in">
+        <div class="card-title"><span class="card-icon">🏗️</span> Классическая бригада и станции</div>
+        <p>Система станций (фр. <em>brigade de cuisine</em>, Эскофье) — основа организации кухни. Каждая станция — мини-кухня со своим хозяином.</p>
+        <div class="table-wrap">
+          <table>
+            <tr><th>Станция</th><th>Зона ответственности</th><th>Ключевой навык</th></tr>
+            <tr><td>Гардермангер (холодный)</td><td>Салаты, закуски, холодные блюда</td><td>Точность, скорость нарезки, подача</td></tr>
+            <tr><td>Entremetier (гарниры/супы)</td><td>Супы, гарниры, яичные блюда</td><td>Бульоны, тайминг, объёмы</td></tr>
+            <tr><td>Сошье (соусье)</td><td>Соусы, жареное, sauté</td><td>Вкус, консистенция, огонь</td></tr>
+            <tr><td>Гриль/роти</td><td>Мясо, птица, гриль</td><td>Температура ядра, степени прожарки</td></tr>
+            <tr><td>Poissonье</td><td>Рыба, морепродукты</td><td>Деликатность, точность минут</td></tr>
+            <tr><td>Птисье (кондитер)</td><td>Десерты, выпечка</td><td>Точность граммов и температур</td></tr>
+          </table>
+        </div>
+        <p>В заведениях меньше классической бригады станции объединяют: холодный + гарниры, горячий + гриль. Но логика та же: у каждой станции — границы, хозяин и стандарты.</p>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">🔄</span> Потоки: продукт не должен ходить крест-накрест</div>
+        <p>Правильная кухня построена по принципу <strong>прямого потока</strong>: приёмка → склад → заготовка → линия → выдача. Продукт движется в одном направлении, а грязная посуда — в обратном, без пересечений.</p>
+        <ul>
+          <li><strong>Зона приёмки</strong> у входа со склада — весы, бракераж, документы</li>
+          <li><strong>Склад → разделка</strong> — сырой продукт никогда не пересекает зону готовой продукции</li>
+          <li><strong>Заготовочная (загот)</strong> — отдельный стол и инвентарь для сырого</li>
+          <li><strong>Линия</strong> — горячая и холодная части, выдача у окна (пасс)</li>
+          <li><strong>Мойка</strong> — отдельный поток грязной посуды, грязная тара не возвращается через линию</li>
+        </ul>
+        <div class="highlight highlight-danger">
+          <strong>Пересечение потоков</strong> — причина большинства нарушений ХАССП: сырой лосось над готовым рисом в холодильнике, грязная тара через зал готовых блюд. Каждое пересечение — риск, который вы потом ищете часами.
+        </div>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">📍</span> Точки критического контроля на линии</div>
+        <ul>
+          <li><strong>Весы на каждой станции</strong> — порция без весов = порция «на глаз» = фудкост врозь</li>
+          <li><strong>Термометры</strong> — в каждой секции холодильника, на гриле, в фритюре (жарка не ниже 170–175°C, иначе жир впитывается)</li>
+          <li><strong>Маркировка контейнеров</strong> — продукт, дата, время, кто приготовил</li>
+          <li><strong>Пасс (окно выдачи)</strong> — единственная точка, где блюдо покидает кухню. Кто на пассе — тот отвечает за вид тарелки</li>
+        </ul>
+        <div class="formula">Правило пасса: блюдо без гарнира не стоит в окне. Собираем целиком — выдаём за 10 секунд</div>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">📚</span> Материалы для углублённого изучения</div>
+        <ul>
+          <li><strong>«The Professional Chef», Culinary Institute of America</strong> — мировой стандарт учебника станций</li>
+          <li><strong>«Управление кухней», Гвоздовская</strong> — организация пространства и потоков по-русски</li>
+          <li><strong>Модуль 5 ManagerBook</strong> — техкарты и порционность (обязательная база)</li>
+        </ul>
+      </div>`,
+    checklist: [
+      "Нарисовать план кухни и проверить: нет ли пересечения сырого и готового",
+      "Установить весы на каждую станцию",
+      "Проверить термометры: холодильники, гриль, фритюр",
+      "Ввести маркировку всех контейнеров (продукт/дата/время/кто)",
+      "Назначить хозяина пасса и стандарт выдачи"
+    ],
+    quiz: [
+      { q: "Кто ввёл систему бригад (станций) на кухне?", options: ["Жорж Огюст Эскофье", "Мари-Антуан Карем", "Ферран Адриа", "Гордон Рамзи"], correct: 0, explanation: "Эскофье организовал кухню как бригаду со станциями в конце XIX века. Эта система работает до сих пор в любой профессиональной кухне." },
+      { q: "Правильный поток на кухне:", options: ["Продукт ходит крест-накрест", "Приёмка → склад → заготовка → линия → выдача, посуда — в обратную сторону", "Всё в одной зоне быстрее", "Поток не важен"], correct: 1, explanation: "Прямой поток: сырьё движется в одном направлении, грязная посуда — в противоположном, без пересечений. Пересечение = риск ХАССП." },
+      { q: "Температура фритюра для жарки:", options: ["140–150°C", "170–175°C", "200–220°C", "Не важно"], correct: 1, explanation: "170–175°C. Ниже — продукт впитывает жир; выше — горит корка, сырой центр. Фритюр контролируем термометром, а не «на глаз»." },
+      { q: "Что такое пасс?", options: ["Пароварка", "Окно выдачи готовых блюд", "Склад посуды", "Вид ножа"], correct: 1, explanation: "Пасс (fr. passer) — точка выдачи. Блюдо собирается целиком и уходит за 10 секунд. Хозяин пасса отвечает за вид каждой тарелки." },
+      { q: "Где должны стоять весы на кухне?", options: ["Только на заготовке", "На каждой станции", "В кабинете шефа", "Вообще не нужны"], correct: 1, explanation: "На каждой станции. Порция «на глаз» — это ±20% отклонения фудкоста. Весы — самый дешёвый инструмент контроля экономики." }
+    ]
+  },
+  {
+    id: 3,
+    title: "Фудкост: экономика кухни",
+    time: "55 мин",
+    theory: `<div class="card fade-in">
+        <div class="card-title"><span class="card-icon">🧮</span> Фудкост: считаем как шеф, а не как бухгалтерия</div>
+        <p>Фудкост (Food Cost) — доля стоимости продуктов в продаже блюд. Но шефу нужны три разных цифры, а не одна.</p>
+        <div class="table-wrap">
+          <table>
+            <tr><th>Вид фудкоста</th><th>Формула</th><th>Зачем</th></tr>
+            <tr><td>Теоретический (по техкартам)</td><td>Себестоимость по ТК ÷ цена</td><td>Оценка новых блюд</td></tr>
+            <tr><td>Фактический (по инвентаризации)</td><td>Расход продуктов ÷ выручка от еды</td><td>Реальная экономика месяца</td></tr>
+            <tr><td>Дневной (по расходу)</td><td>Списано продуктов за день ÷ выручка дня</td><td>Оперативный контроль</td></tr>
+          </table>
+        </div>
+        <div class="formula">Потери = Теоретический фудкост − Фактический. Теория 28%, факт 31% = 3% уходят в пережар, пересол, кражи, ошибки</div>
+        <p><strong>Пример:</strong> выручка от еды 100 000₽/день. Отклонение факта от теории всего 3% = 3 000₽/день = <strong>90 000₽/мес</strong> — зарплата повара.</p>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">⚖️</span> Себестоимость блюда: brutto, netto, выход</div>
+        <p>Три веса решают всё. Путать их — значит врать самому себе в калькуляции.</p>
+        <ul>
+          <li><strong>Brutto</strong> — вес сырого продукта как куплен (для закупок и цены закупки)</li>
+          <li><strong>Netto</strong> — вес после очистки (для нормы расхода в техкарте)</li>
+          <li><strong>Выход</strong> — вес готового блюда на тарелке (для контроля порции)</li>
+        </ul>
+        <div class="formula">Коэффициент выхода = Netto ÷ Brutto. Говядина: 1 кг brutto → 0,75 кг netto = коэф. 0,75. Значит, на 10 кг нетто нужно заказать 13,3 кг брутто</div>
+        <div class="highlight highlight-success">
+          <strong>Практика:</strong> таблица выходов по каждому продукту висит на заготовке. Повар режет — сверяет. Отклонение больше 2% = разговор о ноже, руках или сырье.
+        </div>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">🔍</span> Где теряются проценты: аудит фудкоста</div>
+        <ul>
+          <li><strong>Пережар/пересол</strong> — брак на линии, не зафиксированный никем. Ловится весами на станциях</li>
+          <li><strong>Перебор порции</strong> — «щедрая рука» повара. Ловится контрольной взвешиванием 10 блюд/смену</li>
+          <li><strong>Спишки «под шумок»</strong> — продукт уходит в еду персонала без учёта. Ловится единым стандартом питания команды</li>
+          <li><strong>Ошибки заготовок</strong> — резали на 20 порций, продали 15. Ловится ежедневным учётом остатков заготовок</li>
+          <li><strong>Кражи</strong> — лосось в рюкзаке. Ловится внезапной инвентаризацией группы А (мясо, рыба, икра)</li>
+          <li><strong>Цены поставщика</strong> — выросли на 10%, техкарта не пересчитана. Ловится ежемесячной сверкой цен</li>
+        </ul>
+        <div class="highlight highlight-danger">
+          <strong>Золотое правило:</strong> инвентаризация группы А (5–7 дорогих позиций: мясо, рыба, икра, масло, сыры) — ежедневно, 10 минут. Полная — раз в неделю.
+        </div>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">🛠️</span> Инструменты контроля шефа</div>
+        <ul>
+          <li><strong>Ежедневный лист фудкоста</strong> — 15 минут утром: списания, брак, теория vs факт</li>
+          <li><strong>Калькуляционная карта</strong> на каждое блюдо — пересчёт при изменении цен поставщика</li>
+          <li><strong>Нормы заготовок</strong> — по прогнозу продаж (вчера + брони), не «на глаз»</li>
+          <li><strong>Единый учёт питания команды</strong> — staff-меню фиксируется, не «в общий котёл»</li>
+          <li><strong>План списаний</strong> — норма до 1% выручки; всё сверх — разбор с су-шефом</li>
+        </ul>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">📚</span> Материалы для углублённого изучения</div>
+        <ul>
+          <li><strong>«Управление кухней», Гвоздовская</strong> — глава об экономике: фудкост без воды</li>
+          <li><strong>Модули 3 и 12 ManagerBook</strong> — финансы и меню-инжиниринг глазами управляющего</li>
+          <li><strong>Калькулятор себестоимости в iiko/Poster</strong> — автоматизация пересчёта техкарт</li>
+        </ul>
+      </div>`,
+    checklist: [
+      "Посчитать теоретический и фактический фудкост за месяц — найти разрыв",
+      "Составить таблицу выходов (brutto → netto) для ТОП-20 продуктов",
+      "Назначить ежедневную инвентаризацию группы А",
+      "Ввести контрольное взвешивание 10 блюд за смену",
+      "Пересчитать техкарты с подорожавшими продуктами"
+    ],
+    quiz: [
+      { q: "Разрыв между теоретическим и фактическим фудкостом показывает:", options: ["Ошибки бухгалтерии", "Потери: пережар, перебор, кражи, ошибки", "Нужно поднять цены", "Норму работы"], correct: 1, explanation: "Теория 28% vs факт 31% = 3% потерь. Они уходят в брак на линии, щедрые порции, списания «под шумок» и кражи. Это зона работы шефа, а не бухгалтерии." },
+      { q: "Коэффициент выхода говядины 0,75. Сколько brutto нужно на 10 кг netto?", options: ["10 кг", "11 кг", "13,3 кг", "7,5 кг"], correct: 2, explanation: "10 ÷ 0,75 = 13,3 кг brutto. Путание brutto и netto — классическая ошибка, которая врёт в закупках и калькуляции." },
+      { q: "Какие позиции инвентаризируются ежедневно?", options: ["Все", "Группа А: мясо, рыба, икра, масло, сыры", "Только овощи", "Только алкоголь"], correct: 1, explanation: "Группа А — 5–7 самых дорогих позиций, 80% стоимости склада. 10 минут в день закрывают главный риск краж и недовеса." },
+      { q: "Норма списаний для кухни:", options: ["До 3% выручки", "До 1% выручки", "До 5% выручки", "Списания не нормируются"], correct: 1, explanation: "До 1% выручки. Всё сверх — не «норма жизни», а системная проблема: заготовки, хранение, дисциплина или кражи." },
+      { q: "Что делать при росте цен поставщика на 10%?", options: ["Ничего — рынок", "Пересчитать техкарту: новая себестоимость, решение о цене/норме", "Сменить поставщика немедленно", "Уменьшить порцию тайно"], correct: 1, explanation: "Пересчёт техкарты обязателен. Дальше три решения: поднять цену, изменить норму, заменить продукт. Тайное уменьшение порции — потеря доверия гостей." }
+    ]
+  },
+  {
+    id: 4,
+    title: "Закупки и поставщики",
+    time: "50 мин",
+    theory: `<div class="card fade-in">
+        <div class="card-title"><span class="card-icon">📑</span> Спецификация: договор о том, ЧТО именно покупаем</div>
+        <p>Спецификация — письменное описание продукта: сорт, размер, жирность, упаковка, температура поставки, срок. Без неё «говядина вырезка» — это лотерея.</p>
+        <div class="highlight">
+          <strong>Пример спецификации:</strong> «Говядина вырезка, охлаждённая, сорт 1, жиловка не более 5%, вакуум, температура 0...+4°C, срок годности не более 14 суток, вес тушки 2–4 кг»
+        </div>
+        <ul>
+          <li><strong>По каждой ключевой позиции</strong> — своя спецификация, подписана шефом и поставщиком</li>
+          <li><strong>Приёмка по спецификации</strong> — не соответствует = акт претензии + замена/возврат</li>
+          <li><strong>Спецификация от производства</strong> — блюдо начинается с закупки: сырьё задаёт 50% результата</li>
+        </ul>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">🏪</span> Портфель поставщиков: не ставим всё на одного</div>
+        <ul>
+          <li><strong>2+ поставщика на критичные категории</strong> (мясо, рыба, овощи) — если один сорвался, кухня работает</li>
+          <li><strong>Тендер раз в квартал</strong> — сравнение 2–3 поставщиков по спецификации, а не по прайсу (прайс врёт: сорт, вес, условия)</li>
+          <li><strong>Условия важнее цены</strong> на 2–3%: время поставки, право возврата брака, отсрочка платежа</li>
+          <li><strong>Локальные фермеры</strong> — сезонные преимущества, но проверяем документы и стабильность объёмов</li>
+        </ul>
+        <div class="formula">Приёмка = вес + температура + качество + документы. Одно «норм» на четвёрке = головная боль вечером</div>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">🚨</span> Приёмка: где сидит деньгопотеря</div>
+        <p>Недовес 5% на мясе при закупке 300 кг/мес = 15 кг = 9–12 тыс. ₽/мес чистой потери.</p>
+        <ul>
+          <li><strong>Весы на приёмке</strong> — пересчёт каждой партии, не «по накладной»</li>
+          <li><strong>Температура</strong> — охлаждёнка 0...+4°C, заморозка не выше −18°C. Тёплый фургон = отказ</li>
+          <li><strong>Бракераж</strong> — цвет, запах, консистенция, упаковка. Фиксируется в журнале</li>
+          <li><strong>Документы</strong> — накладная/УПД, ветеринарные (Меркурий) на продукцию животного происхождения</li>
+          <li><strong>Претензия за 24 часа</strong> — позже поставщик «ничего не знает»</li>
+        </ul>
+        <div class="highlight highlight-danger">
+          <strong>Правило приёмщика:</strong> право остановить поставку без объяснений перед су-шефом. Дешевле перенести меню, чем объяснять гостю, почему рыба «душит».
+        </div>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">📅</span> Заявки: ритм закупок</div>
+        <ul>
+          <li><strong>Ежедневные</strong>: хлеб, молоко, зелень, ягоды — заявка до 15:00 на завтра</li>
+          <li><strong>2–3 раза в неделю</strong>: мясо, рыба, овощи — по плану заготовок</li>
+          <li><strong>Еженедельные</strong>: крупы, масло, консервация — по остаткам склада</li>
+          <li><strong>Страховой запас</strong>: 1–2 дня по критичным позициям (не больше — замораживаем деньги и портим)</li>
+        </ul>
+        <p><strong>Формула заявки:</strong> план продаж по техкартам (brutto) − остаток − заготовки = заявка. Никаких «как вчера».</p>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">📚</span> Материалы для углублённого изучения</div>
+        <ul>
+          <li><strong>«Управление кухней», Гвоздовская</strong> — закупки и спецификации</li>
+          <li><strong>Модуль 6 ManagerBook</strong> — ABC/XYZ-анализ склада</li>
+          <li><strong>Меркурий (меркурий.рф)</strong> — правила ветеринарного учёта</li>
+        </ul>
+      </div>`,
+    checklist: [
+      "Написать спецификации на ТОП-10 закупаемых позиций",
+      "Поставить весы на приёмку и ввести правило пересчёта",
+      "Провести тендер минимум на 2 категории (мясо/рыба)",
+      "Настроить ритм заявок (ежедневные/2–3 раза в неделю/еженедельные)",
+      "Составить шаблон претензии поставщику"
+    ],
+    quiz: [
+      { q: "Что такое спецификация?", options: ["Договор аренды", "Письменное описание продукта: сорт, размер, температура, упаковка", "Прайс поставщика", "Техкарта блюда"], correct: 1, explanation: "Спецификация — письменное описание продукта, по которому принимается поставка. Без неё спор о качестве превращается в «а мы так не договаривались»." },
+      { q: "Сколько поставщиков должно быть на критичные категории?", options: ["1 — дешевле", "2+ — резерв при срыве", "5", "Не важно"], correct: 1, explanation: "Минимум два на мясо, рыбу, овощи. Сорвавшаяся поставка без резерва = переписывание меню за час до пика." },
+      { q: "Температура приёмки охлаждённого мяса:", options: ["+8...+10°C", "0...+4°C", "−5°C", "Любая — главное вкусно"], correct: 1, explanation: "0...+4°C. Выше — зона риска бактериального роста, ниже — заморожено под видом охлаждённого. Меряем пирометром каждую партию." },
+      { q: "В какой срок подаётся претензия поставщику?", options: ["Неделя", "24 часа", "Месяц", "Никогда"], correct: 1, explanation: "До 24 часов после приёмки. Позже доказать брак практически невозможно — поставщик «ничего не знает»." },
+      { q: "Формула заявки:", options: ["Как вчера", "План продаж (brutto) − остаток − заготовки", "Что просят повара", "По настроению"], correct: 1, explanation: "Заявка = потребность по техкартам минус то, что уже есть. «Как вчера» порождает либо недостачу в пик, либо списания." }
+    ]
+  },
+  {
+    id: 5,
+    title: "Склад и инвентаризация кухни",
+    time: "45 мин",
+    theory: `<div class="card fade-in">
+        <div class="card-title"><span class="card-icon">📦</span> Организация склада кухни</div>
+        <p>Склад — это продолжение линии, только медленная. Порядок здесь = скорость там.</p>
+        <ul>
+          <li><strong>Зонирование</strong>: сухой склад → холодильник (+2...+6°C) → фризер (−18°C и ниже) → зона «на сегодня» (самое ходовое у двери)</li>
+          <li><strong>Товары на полках, не на полу</strong> — минимум 15 см от пола, 10 см от стены</li>
+          <li><strong>Сырьё снизу, готовое сверху</strong> — в холодильнике: готовые блюда на верхних полках, сырой белок выше рыбы и мяса (капание вниз по иерархии риска)</li>
+          <li><strong>Стекло/керамика на складе не хранится</strong> — только в производстве</li>
+          <li><strong>Химия отдельно</strong> — моющие средства только на складе химии, никогда рядом с продуктами</li>
+        </ul>
+        <div class="highlight highlight-danger">
+          <strong>Частая смерть:</strong> «рабочий холодильник заготовок» в вечерней смене — температура +9°C, потому что дверь открыта весь пик. Ответ: холодильник заготовок с ограниченным доступом, пополнение порциями.
+        </div>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">🔃</span> FIFO и FEFO: правило, которое экономит тысячи</div>
+        <div class="formula">FIFO — первым пришёл, первым ушёл. FEFO — первым истекает срок, первым ушёл. Работаем по FEFO: срок важнее даты прихода</div>
+        <p><strong>Как заставить работать:</strong></p>
+        <ul>
+          <li><strong>Приёмка сзади</strong> — новая партия кладётся ЗА старую (старое выходит первым)</li>
+          <li><strong>Маркировка крупная</strong> — дата производства + дата вскрытия + срок хранения после вскрытия</li>
+          <li><strong>Контейнеры одинаковые, прозрачные</strong> — видно, что и сколько, без археологии</li>
+          <li><strong>«Зона смерти»</strong> — полка «съесть сегодня-завтра», куда сбрасывается всё с истекающим сроком. Шеф планирует спецпредложение из неё</li>
+        </ul>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">🧮</span> Инвентаризация кухни: делаем точно</div>
+        <ul>
+          <li><strong>Периодичность</strong>: группа А (мясо/рыба/икра/масло/сыры) — ежедневно; полная — раз в неделю; глобальная с бухгалтерией — раз в месяц</li>
+          <li><strong>Вдвоём</strong> — один считает, второй записывает и переспрашивает</li>
+          <li><strong>Весы и нормы-эквиваленты</strong> — сырой продукт, заготовка, полуфабрикат: весят и пересчитывают по коэффициентам</li>
+          <li><strong>Недостача = разбор</strong> — не «спишем», а: заготовка перерасход? воровство? ошибка нормы? Каждая недостача с причиной</li>
+          <li><strong>Сверка с теорией</strong> — учётный остаток по расходу минус факт = дисциплина кухни в цифре</li>
+        </ul>
+        <div class="highlight highlight-success">
+          <strong>Техника «замораживания взгляда»:</strong> считаем по маршруту склада всегда одинаковому (сверху вниз, слева направо) — исключаем пропуски и двойной счёт.
+        </div>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">📚</span> Материалы для углублённого изучения</div>
+        <ul>
+          <li><strong>Модуль 6 ManagerBook</strong> — ABC/XYZ-анализ и экономика склада</li>
+          <li><strong>«Управление кухней», Гвоздовская</strong> — складской учёт</li>
+          <li><strong>Регламенты Меркурий (мясо/рыба/молочка)</strong> — обязательная документация</li>
+        </ul>
+      </div>`,
+    checklist: [
+      "Проверить температурные зоны склада (сухой/+2...+6/−18)",
+      "Перевернуть склад по FEFO: новое сзади, старое спереди",
+      "Ввести маркировку «произведено/вскрыто/годен до» на все контейнеры",
+      "Назначить ежедневную инвентаризацию группы А",
+      "Создать «зону смерти» для продуктов с истекающим сроком"
+    ],
+    quiz: [
+      { q: "Почему FEFO важнее FIFO на кухне?", options: ["Красивее звучит", "Срок годности важнее даты прихода: первым уходит то, что скорее испортится", "Поставщики требуют", "Это одно и то же"], correct: 1, explanation: "FEFO (First Expired, First Out) — первым истекает срок, первым в работу. Именно срок, а не дата поставки, решает, что использовать сегодня." },
+      { q: "Где хранятся готовые блюда в холодильнике?", options: ["На нижней полке", "На верхних полках, сырьё — ниже", "Везде вперемешку", "На полу"], correct: 1, explanation: "Готовое — сверху, сырьё снизу по иерархии риска (рыба и мясо в самом низу). Исключает капание сырого на готовое — базовое правило ХАССП." },
+      { q: "Как часто инвентаризируется группа А?", options: ["Раз в месяц", "Раз в неделю", "Ежедневно", "Раз в год"], correct: 2, explanation: "Ежедневно, 10 минут. Группа А — 5–7 дорогих позиций, 80% стоимости. Это дешевле любой кражи." },
+      { q: "Сколько человек проводит инвентаризацию?", options: ["Один", "Двое: считает и записывает", "Вся смена", "Бухгалтер один"], correct: 1, explanation: "Двое: один считает, второй записывает и переспрашивает. Это исключает ошибки и мошенничество." },
+      { q: "Что делать с недостачей по итогам инвентаризации?", options: ["Списать молча", "Разобрать причину: перерасход, ошибка нормы, кража", "Разделить на всех", "Игнорировать до месяца"], correct: 1, explanation: "Каждая недостача — с причиной. Системные причины чинятся процессом, кражи — дисциплиной, ошибки норм — техкартами." }
+    ]
+  },
+  {
+    id: 6,
+    title: "ХАССП на практике кухни",
+    time: "50 мин",
+    theory: `<div class="card fade-in">
+        <div class="card-title"><span class="card-icon">🛡️</span> Критические контрольные точки кухни (ККТ)</div>
+        <p>ХАССП — не папка для проверки, а ежедневная работа. ККТ кухни, где опасность реальна:</p>
+        <div class="table-wrap">
+          <table>
+            <tr><th>Точка</th><th>Опасность</th><th>Критический предел</th></tr>
+            <tr><td>Приёмка</td><td>Истёкший срок, разрыв холодовой цепи</td><td>Температура: охлаждёнка 0...+4°C, заморозка ≤ −18°C</td></tr>
+            <tr><td>Хранение</td><td>Рост бактерий</td><td>Холодильники +2...+6°C, фризер ≤ −18°C</td></tr>
+            <tr><td>Разморозка</td><td>Бактерии в «тёплой зоне»</td><td>Только холод (+2...+6°C) или вода ≤ +21°C, никогда на воздухе</td></tr>
+            <tr><td>Тепловая обработка</td><td>Выживание патогенов</td><td>Ядро мяса ≥ +74°C, рыба ≥ +63°C, птица ≥ +74°C</td></tr>
+            <tr><td>Охлаждение</td><td>«Опасная зона» бактерий</td><td>С +60°C до +21°C — за 2 часа, до +6°C — за 4 часа</td></tr>
+            <tr><td>Хранение готового</td><td>Токсины</td><td>+2...+6°C, готовое — до 24–48 часов (по видам)</td></tr>
+            <tr><td>Подача/разогрев</td><td>Повторное загрязнение</td><td>Разогрев до +74°C, подача горячим ≥ +65°C</td></tr>
+          </table>
+        </div>
+        <div class="highlight highlight-danger">
+          <strong>«Опасная зона»</strong> +4...+60°C — бактерии размножаются вдвое каждые 20 минут. Правило кухни: проходим её быстро — готовим горячим или храним холодным.
+        </div>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">📋</span> Программа ХАССП: документы, которые живут</div>
+        <ul>
+          <li><strong>Описание продукта и потребителя</strong> — по каждой группе блюд (кто ест: дети, беременные, аллергики)</li>
+          <li><strong>Схема технологических потоков</strong> — от приёмки до подачи, с отметками ККТ</li>
+          <li><strong>План контроля ККТ</strong> — что меряем, чем, кто, как часто, куда записываем</li>
+          <li><strong>Корректирующие действия</strong> — что делаем при выходе за пределы (блюдо с ядром +70°C — в брак, не «ещё минутку»)</li>
+          <li><strong>Журналы контроля</strong> — температуры приёмки, хранения, обработки (реальные записи, не «вспомним»)</li>
+        </ul>
+        <div class="highlight highlight-success">
+          <strong>Тест на живость программы:</strong> спроси повара на станции — «что делать, если термометр показал +68°C в котлете?» Ответ знает = ХАССП живёт. Не знает = программа на бумаге.
+        </div>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">🧪</span> Микробиология для повара: что убивает и что не убивает</div>
+        <ul>
+          <li><strong>Термостабильные токсины</strong> (стафилококк, бациллы) — НЕ разрушаются нагревом! Токсин уже в готовом блюде = блюдо в мусор. Поэтому контроль — до нагрева: хранение, сроки, личная гигиена</li>
+          <li><strong>Сальмонелла, листерия, кишечная палочка</strong> — гибнут при ≥ +74°C в ядре. Проверяем термощупом в самой толстой части</li>
+          <li><strong>Перекрёстное загрязнение</strong> — доска для сырого, потом хлеб = перенос. Разделение: цветные доски, отдельные ножи, мытьё рук</li>
+          <li><strong>Носители</strong> — повар со стафилококком в носу заражает соусы. Медкнижки + личная гигиена — не бюрократия</li>
+        </ul>
+        <div class="formula">Термощуп — главный инструмент безопасности. Меряем ядро продукта, а не поверхность: снаружи +90°C, внутри +65°C = опасное блюдо</div>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">📚</span> Материалы для углублённого изучения</div>
+        <ul>
+          <li><strong>Модуль 9 ManagerBook</strong> — базовый курс ХАССП (повторить обязательно)</li>
+          <li><strong>«On Food and Cooking», Гарольд Макги</strong> — наука о еде: почему работают правила</li>
+          <li><strong>ГОСТ Р 54607 / методики Роспотребнадзора</strong> — формальная основа программы</li>
+        </ul>
+      </div>`,
+    checklist: [
+      "Проверить термощупы на всех станциях (есть, работают, калиброваны)",
+      "Пройтись по всем ККТ: сверить фактические температуры с пределами",
+      "Проверить журналы контроля: заполнены ли реально",
+      "Спросить трёх поваров: «что делать при выходе за предел?»",
+      "Проверить разморозку: нет ли разморозки на воздухе"
+    ],
+    quiz: [
+      { q: "Минимальная температура в ядре мяса:", options: ["+63°C", "+70°C", "+74°C", "+100°C"], correct: 2, explanation: "+74°C в ядре — гарантия гибели патогенов. Птица и фарш — обязательно +74°C, рыба допускает +63°C. Меряем термощупом в толстой части." },
+      { q: "За сколько часов готовое блюдо должно остыть с +60°C до +21°C?", options: ["30 минут", "2 часа", "6 часов", "Не важно"], correct: 1, explanation: "2 часа до +21°C и ещё 2 (всего 4) до +6°C. В «опасной зоне» +4...+60°C бактерии удваиваются каждые 20 минут." },
+      { q: "Почему токсины стафилококка опаснее самой бактерии?", options: ["Они ярче", "Термостабильны: нагрев не уничтожает токсин — блюдо всё равно в мусор", "Они пахнут", "Это миф"], correct: 1, explanation: "Токсин выдерживает нагрев — даже пережаренное блюдо остаётся опасным. Поэтому боремся до: хранение, сроки, гигиена рук и носа." },
+      { q: "Где меряем температуру термощупом?", options: ["На поверхности сковороды", "В самой толстой части продукта (ядро)", "В соусе рядом", "В духовке"], correct: 1, explanation: "Ядро — самая толстая, самая холодная часть. Поверхность может быть +95°C, а в центре +65°C — опасное блюдо с красивой корочкой." },
+      { q: "Как правильно размораживать мясо?", options: ["На воздухе всю ночь", "В тепле быстрее", "В холоде +2...+6°C или под проточной водой ≤ +21°C", "В горячей воде"], correct: 2, explanation: "Только холод или холодная вода. Разморозка на воздухе — часы в опасной зоне: поверхность при +15...+20°C к утру покрыта бактериями." }
+    ]
+  },
+  {
+    id: 7,
+    title: "Управление командой поваров",
+    time: "55 мин",
+    theory: `<div class="card fade-in">
+        <div class="card-title"><span class="card-icon">👥</span> Команда кухни: от набора до доверия</div>
+        <p>Кухня — самая стрессовая зона ресторана. Команда там держится не на деньгах, а на трёх китах: <strong>справедливость, уважение, рост</strong>.</p>
+        <ul>
+          <li><strong>Набор:</strong> тест на станции (2 часа реальной работы) важнее резюме. Характер важнее навыка: навык научим, характер — нет</li>
+          <li><strong>Правила игры:</strong> 5–7 чётких правил кухни (гигиена, уважение, запрет на «это не моя станция»), объяснённые на первом брифинге</li>
+          <li><strong>Справедливость:</strong> лучшие станции и смены — по заслугам, а не по личной симпатии. Кухня мгновенно чует фаворитов — и мстит качеством</li>
+          <li><strong>Уважение:</strong> шеф не орёт. Крик на кухне = потеря лица обеих сторон. Разбор — после смены, в привате (SBI, модуль 13 ManagerBook)</li>
+        </ul>
+        <div class="highlight highlight-danger">
+          <strong>Токсичная звезда:</strong> гениальный повар, который травит команду — минус 30% эффективности всей линии. Дорогой выбор: либо меняется, либо уходит, независимо от таланта.
+        </div>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">🗣️</span> Коммуникация на линии: коротко и точно</div>
+        <p>Пиковая кухня — это радиообмен. Стандарты выкриков спасают от хаоса:</p>
+        <ul>
+          <li><strong>«Заказ, стоит»</strong> — повтор вслух (fire back) — лучшая защита от ошибок. Не повторил = не слышал</li>
+          <li><strong>«Готовлю 5» / «На выдаче 2»</strong> — тайминги вслух, чтобы пасс знал картину</li>
+          <li><strong>«Аллергия — 86 кальмар»</strong> — спецзаявки выделяются голосом и жестом, контроль су-шефа лично</li>
+          <li><strong>«86 борщ»</strong> — когда блюдо закончилось, зал узнаёт немедленно, а не когда гость его заказал</li>
+        </ul>
+        <div class="highlight highlight-success">
+          <strong>Тишина в пик — сигнал проблемы.</strong> Нормальная горячая линия звучит как диспетчерская: короткие подтверждения, тайминги, статусы. Молчание = заказы теряются.
+        </div>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">⚔️</span> Конфликты на кухне: разбор полётов</div>
+        <p>Горячий цех + ножи + стресс = конфликты. Норма. Аномалия — конфликт, который живёт дольше смены.</p>
+        <ul>
+          <li><strong>В пик:</strong> развести стороны по станциям, ноль обсуждений. Кто кричит в пике — работает на вытяжке (не буквально, но без «красивых» станций)</li>
+          <li><strong>После смены:</strong> разбор по SBI за 24 часа: «В пик 20:00 (S) ты не вышел на гарнирах (B), супы ушли на 12 минут позже (I). Что случилось?»</li>
+          <li><strong>Типы причин:</strong> личная неприязнь (развести сменами на 2 недели), непонятные стандарты (дописать техкарту), нехватка людей (найм, а не давление)</li>
+          <li><strong>Конфликт с залом:</strong> кухня и официанты — одна команда. Общие брифинги, общая ответственность за гостя</li>
+        </ul>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">📉</span> Дисциплина без крика</div>
+        <p>Градация нарушений (как у управляющего, но быстрее):</p>
+        <ul>
+          <li><strong>Замечание</strong> (устное, в логе) — опоздание, немытый нож, снятая форма</li>
+          <li><strong>Выговор</strong> (письменно, влияет на премию) — повторное нарушение, несоблюдение техкарты</li>
+          <li><strong>Расторжение</strong> — кража, агрессия, пьянство, грубое нарушение гигиены</li>
+        </ul>
+        <div class="formula">Дисциплина = предсказуемость последствий. Одинаковая реакция на одно и то же — вот всё, чего требует команда</div>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">📚</span> Материалы для углублённого изучения</div>
+        <ul>
+          <li><strong>«Пять пороков команды», Патрик Ленсиони</strong> — почему команды разваливаются</li>
+          <li><strong>«Управление кухней», Гвоздовская</strong> — управление поварами</li>
+          <li><strong>Модуль 13 ManagerBook</strong> — техника SBI для обратной связи</li>
+        </ul>
+      </div>`,
+    checklist: [
+      "Провести 1-to-1 с каждым поваром (15 минут, раз в месяц)",
+      "Ввести стандарты выкриков на линии (fire back обязателен)",
+      "Разобрать конфликт дольше суток — если есть",
+      "Составить 5–7 правил кухни и объявить на брифинге",
+      "Проверить справедливость расстановки: лучшие смены = лучшим"
+    ],
+    quiz: [
+      { q: "Что важнее при найме повара?", options: ["Большое резюме", "Характер: навык научим, характер — нет", "Красивый ножной набор", "Знакомство"], correct: 1, explanation: "Тест на станции показывает характер в стрессе. Умения доводятся за месяцы, а токсичность и лень — не лечатся." },
+      { q: "Что такое «fire back» на линии?", options: ["Выкрик «горячо!»", "Повтор заказа вслух для подтверждения", "Разогрев супа", "Приказ ускориться"], correct: 1, explanation: "Fire back — повтор заказа вслух. Не повторил = не принял. Главная защита от «я думал, два, не три» в пик." },
+      { q: "Как решать конфликт двух поваров в пик?", options: ["Судить сразу", "Развести по станциям, разбор после смены по SBI", "Уволить обоих", "Игнорировать"], correct: 1, explanation: "В пике только разводим и дожимаем сервис. Разбор — после, по фактам: SBI в течение 24 часов." },
+      { q: "«Токсичная звезда» на кухне — это:", options: ["Самый быстрый повар", "Талантливый повар, который травит команду", "Повар с дорогим ножом", "Су-шеф"], correct: 1, explanation: "Талант, который стоит −30% эффективности линии и текучки хороших людей, — убыточный талант. Меняется или уходит." },
+      { q: "Основа дисциплины на кухне:", options: ["Страх", "Предсказуемость последствий", "Высокие штрафы", "Личная харизма шефа"], correct: 1, explanation: "Одинаковая реакция на одинаковые нарушения. Команда не требует мягкости — требует справедливости." }
+    ]
+  },
+  {
+    id: 8,
+    title: "Обучение и развитие поваров",
+    time: "50 мин",
+    theory: `<div class="card fade-in">
+        <div class="card-title"><span class="card-icon">🌱</span> Наставничество: как передавать мастерство</div>
+        <p>Шеф растёт ровно настолько, насколько растут его повара. Обучение — не «показал один раз», а методика.</p>
+        <ul>
+          <li><strong>Расскажи</strong> — зачем так: технология + причина (почему мясо отдыхает 5 минут — понимание, а не зубрёжка)</li>
+          <li><strong>Покажи</strong> — на реальном продукте, на станции ученика, не на своей</li>
+          <li><strong>Дай сделать</strong> — под наблюдением, с правом на ошибку на «нормальном» продукте</li>
+          <li><strong>Разбери</strong> — что получилось, что нет, один пункт улучшения (не пять!)</li>
+          <li><strong>Повтори</strong> — закрепление через неделю: навык без повторения выветривается за 3–7 дней</li>
+        </ul>
+        <div class="formula">Nаставник получает бонус за результат ученика (аттестация через 2–3 месяца). Наставничество без денег — просьба о одолжении</div>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">🍽️</span> Дегустации: обучение вкусом</div>
+        <p>Повар, который не пробует, — готовит вслепую. Система дегустаций:</p>
+        <ul>
+          <li><strong>Каждое новое блюдо</strong> — вся команда пробует до выхода в меню (не «повара уже знают»)</li>
+          <li><strong>Еженедельная дегустация</strong> — 30 минут до смены: новинка, сезонный продукт, разбор брака недели</li>
+          <li><strong>Слепые дегустации</strong> — тот же соус тремя способами: обучение языка, а не рецепта</li>
+          <li><strong>Эталон вкуса</strong> — у каждой ключевой позиции есть «образцовая тарелка», которую пробует су-шеф перед пиком</li>
+        </ul>
+        <div class="highlight highlight-success">
+          <strong>Метрика:</strong> повар должен описать блюдо словами («кисло-сладко, грильная горечь, свежая кислота»). Не может описать — не контролирует вкус.
+        </div>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">📝</span> Аттестации и грейды поваров</div>
+        <p>Лестница: стажёр → разделочник → повар станции → универсал → су-шеф. Переход — только через экзамен:</p>
+        <ul>
+          <li><strong>Теория (20%)</strong> — техкарты, температуры, ХАССП</li>
+          <li><strong>Практика (60%)</strong> — станция в реальном пике: скорость + качество</li>
+          <li><strong>Вкус (20%)</strong> — слепая дегустация своих блюд и эталонов</li>
+          <li><strong>Грейд = деньги</strong>: +10–15% к окладу за каждый уровень</li>
+        </ul>
+        <div class="highlight">
+          <strong>Подтверждение грейда — раз в год.</strong> Не подтвердил — надбавка заморожена. Это держит планку и мотивирует не «досиживать».
+        </div>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">🏫</span> Учебные смены и тренинги</div>
+        <ul>
+          <li><strong>Учебная смена раз в 2 недели</strong> — 2 часа до открытия: новая техника, разбор ошибок, тренировка пика (симуляция заказов вслух)</li>
+          <li><strong>Кросс-обучение</strong> — каждый повар знает минимум 2 станции: горячий умеет холодный, разделочник — гарниры</li>
+          <li><strong>Внешнее обучение</strong> — мастер-классы, стажировки у коллег, выставки (точка, Horeca): бюджет — 1–2 поездки в год на повара</li>
+          <li><strong>Библиотека кухни</strong> — 5–10 книг в подсобке + распечатанные техкарты новинок</li>
+        </ul>
+        <div class="highlight highlight-danger">
+          <strong>Обучение отменяется в первую очередь — и зря.</strong> Смена без тренинга два месяца = команда стоит на месте, а рынок растёт. Учебные смены — в графике, как рабочие.
+        </div>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">📚</span> Материалы для углублённого изучения</div>
+        <ul>
+          <li><strong>«The Professional Chef», CIA</strong> — учебник для учебной смены</li>
+          <li><strong>«Скорость доверия», Стивен Кови-мл.</strong> — наставничество</li>
+          <li><strong>Модуль 25 ManagerBook</strong> — полная система грейдов (адаптировать под кухню)</li>
+        </ul>
+      </div>`,
+    checklist: [
+      "Назначить наставника каждому стажёру (с бонусом за результат)",
+      "Ввести еженедельную дегустацию 30 минут до смены",
+      "Составить программу экзаменов на грейды поваров",
+      "Внести учебные смены в график (раз в 2 недели)",
+      "Собрать библиотеку кухни: 5–10 книг + техкарты новинок"
+    ],
+    quiz: [
+      { q: "Правильный цикл обучения на кухне:", options: ["Показал → забыл", "Рассказал → показал → дал сделать → разобрал → повторил", "Дал видео посмотреть", "Только практика без объяснений"], correct: 1, explanation: "Полный цикл с закреплением. Навык без повторения через неделю выветривается — обучение всегда циклично." },
+      { q: "Зачем слепые дегустации поварам?", options: ["Для веселья", "Обучение языку вкуса и контролю качества", "Чтобы съесть бесплатно", "Не нужны"], correct: 1, explanation: "Повар, не умеющий описать вкус словами, не контролирует блюдо. Слепые дегустации учат различать и диагностировать." },
+      { q: "Из чего состоит экзамен на грейд повара?", options: ["Только скорость", "Теория 20% + практика в пике 60% + вкус 20%", "Стаж лет", "Рекомендация шефа"], correct: 1, explanation: "Три части: знания, реальная работа на станции в пике и слепая дегустация. Стаж без экзамена не считается." },
+      { q: "Какой бонус у наставника?", options: ["Нет бонуса", "Бонус за аттестацию ученика через 2–3 месяца", "Премия всей смене", "Отгул"], correct: 1, explanation: "Наставник отвечает за результат ученика — и получает бонус за его аттестацию. Наставничество без денег превращается в формальность." },
+      { q: "Зачем кросс-обучение (2+ станции на повара)?", options: ["Чтобы было кому мыть полы", "Гибкость: болезнь/отпуск не останавливают линию", "Экономия на персонале", "Не нужно"], correct: 1, explanation: "Повар, знающий 2 станции, закрывает дыру в любой день. Кухня, где каждый — только «своё», заложница одного человека." }
+    ]
+  },
+  {
+    id: 9,
+    title: "Планирование производства и mise en place",
+    time: "50 мин",
+    theory: `<div class="card fade-in">
+        <div class="card-title"><span class="card-icon">📊</span> Прогноз продаж: угадываем математикой</div>
+        <p>Заготовки «на глаз» — прямая дорога к списаниям или к провалу в пик. Прогноз строится на трёх опорах:</p>
+        <ul>
+          <li><strong>Прошлая неделя этот же день</strong> — база (±15% погода/события)</li>
+          <li><strong>Год назад эта же дата</strong> — сезонность (праздники, отпуска, майские)</li>
+          <li><strong>Брони и события сегодня</strong> — корректировка (банкет на 40 = +40%)</li>
+        </ul>
+        <div class="formula">План порций = Продажи прошлой недели (день) × Коэф. сезона × Коэф. броней. Ошибка прогноза стоит денег: недожал = потерянные продажи, пережал = списания</div>
+        <div class="highlight highlight-success">
+          <strong>Точность цель:</strong> прогноз по ТОП-10 блюдам с ошибкой до 15%. Ведём таблицу «прогноз vs факт» — раз в неделю разбираем отклонения. Через месяц прогнозируете как бухгалтерия.
+        </div>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">🔪</span> Mise en place: всё на своих местах</div>
+        <p>Французская истина кухни: победа вечера решается до открытия.</p>
+        <ul>
+          <li><strong>План заготовок по станциям</strong> — каждая станция получает список: что, сколько, к какому часу</li>
+          <li><strong>Партионность</strong> — заготовки в контейнерах порциями («борщ × 10»), а не общей массой: быстрее в пике, точнее учёт</li>
+          <li><strong>Сроки хранения заготовок</strong> — маркировка: приготовлено / годен до. Супы — 24–48 ч, соусы — 48–72 ч, нарезки — 12–24 ч</li>
+          <li><strong>Котлован «зоны пика»</strong> — к 17:00 на станции только то, что нужно до 20:00, остальное — в подсобке партиями</li>
+          <li><strong>Чистая станция = быстрая станция</strong> — мусор убирается немедленно, инвентарь на местах</li>
+        </ul>
+        <div class="highlight highlight-danger">
+          <strong>Грех №1 заготовок:</strong> маринад/панировка/соус «с запасом на всю смену» в тепле. Опасная зона +4...+60°C работает. Храним холодным, порционируем.
+        </div>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">⏰</span> Тайминги: вечер длится 6 часов, план — по часам</div>
+        <div class="table-wrap">
+          <table>
+            <tr><th>Время</th><th>Действие</th></tr>
+            <tr><td>До 10:00</td><td>Приёмка, бракераж, план заготовок по прогнозу</td></tr>
+            <tr><td>10:00–14:00</td><td>Основные заготовки: бульоны, соусы, маринады, нарезки</td></tr>
+            <tr><td>14:00–15:00</td><td>Подача горячих обедов (контроль отдельным глазом)</td></tr>
+            <tr><td>15:00–17:00</td><td>Пополнение по факту обеда: что ушло — докладываем. Чек-лист станций</td></tr>
+            <tr><td>17:00</td><td>Брифинг: остатки, акценты, расстановка. Финальная mise en place</td></tr>
+            <tr><td>17:00–23:00</td><td>Пик. Су-шеф управляет, а не готовит</td></tr>
+          </table>
+        </div>
+        <div class="formula">Правило «трёх остатков»: в 22:00 су-шеф фиксирует остатки заготовок → план на завтра корректируется за 5 минут, а не угадывается утром</div>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">📚</span> Материалы для углублённого изучения</div>
+        <ul>
+          <li><strong>«Управление кухней», Гвоздовская</strong> — планирование производства</li>
+          <li><strong>Модуль 5 ManagerBook</strong> — mise en place глазами управляющего</li>
+          <li><strong>KDS-отчёты (iiko/POS)</strong> — спрос по часам: реальная картина для прогноза</li>
+        </ul>
+      </div>`,
+    checklist: [
+      "Составить таблицу прогноза: прошлая неделя + брони + сезонность",
+      "Внедрить партионные контейнеры с маркировкой на всех станциях",
+      "Составить чек-лист заготовок по станциям на каждый день",
+      "Ввести фиксацию остатков в 22:00 для плана на завтра",
+      "Разобрать отклонения прогноза vs факт за неделю"
+    ],
+    quiz: [
+      { q: "На чём строится прогноз продаж?", options: ["На интуиции", "Прошлая неделя + год назад + брони/события", "На погоде", "На настроении шефа"], correct: 1, explanation: "Три опоры: прошлая неделя этот же день, та же дата год назад (сезон), брони сегодня. Интуиция — когда цифр нет." },
+      { q: "Нормальная точность прогноза по ТОП-10 блюдам:", options: ["50%", "30%", "До 15%", "100%"], correct: 2, explanation: "Ошибка до 15% — рабочая цель. Достигается таблицей «прогноз vs факт» и еженедельным разбором отклонений." },
+      { q: "Зачем партионные контейнеры вместо общей массы?", options: ["Красивее", "Скорость в пике + точный учёт остатков", "Меньше мыть", "Не нужны"], correct: 1, explanation: "«Борщ × 10» достаётся за секунды, остаток виден сразу. Общая масса = ложки, потери, догадки." },
+      { q: "Что такое «правило трёх остатков»?", options: ["Три вида мяса в холодильнике", "Фиксация остатков в 22:00 для плана на завтра", "Три контрольные точки", "Три повара на линии"], correct: 1, explanation: "Остатки на 22:00 фиксируются су-шефом → план заготовок завтра строится на факте, а не на утренней догадке." },
+      { q: "Когда решается победа вечерней смены?", options: ["В пике", "До открытия — качеством заготовок", "В 23:00", "Не решается"], correct: 1, explanation: "Mise en place: вечер выигрывается до открытия. Пик — исполнение, а не подготовка." }
+    ]
+  },
+  {
+    id: 10,
+    title: "Скорость и стресс-менеджмент на линии",
+    time: "45 мин",
+    theory: `<div class="card fade-in">
+        <div class="card-title"><span class="card-icon">🔥</span> Анатомия пика: что реально происходит</div>
+        <p>Пятница 20:00 — это не «больше заказов», это экспонента: заказы приходят пачками, ошибки множатся, и каждая минута простоя блюда убивает температуру и нервы.</p>
+        <ul>
+          <li><strong>Правило 7 минут</strong> — если блюдо готово, а гарнир/соус нет: блюдо держим горячим не дольше, дальше пересборка</li>
+          <li><strong>Такт пауз</strong> — су-шеф в пике каждые 20 минут озвучивает очередь: «у нас 12 заказов, 3 супа, 4 горячих — план 25 минут». Проговаривание снимает панику</li>
+          <li><strong>Стоп-лист заранее</strong> — если сомневаемся в ресурсе станции: вычёркиваем позицию из меню ДО пика, а не посреди него</li>
+        </ul>
+        <div class="highlight highlight-danger">
+          <strong>Паника заразна.</strong> Если су-шеф бегает и кричит — линия тратит 20% усилий на страх. Спокойный голос в пике — это навык, который тренируют, а не дар.
+        </div>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">🧘</span> Личный стресс-менеджмент повара</div>
+        <ul>
+          <li><strong>Дыхание 4–7–8</strong> — вдох 4 сек, задержка 7, выдох 8: 3 цикла снижают пульс до рабочего</li>
+          <li><strong>Один заказ за раз</strong> — мозг в стрессе многозадачен плохо: фокус на текущей порции, очередь — на доске/мониторе</li>
+          <li><strong>Микропаузы</strong> — 30 секунд у вытяжки между волнами: вода, дыхание, разминка кистей</li>
+          <li><strong>«Стоп-слово»</strong> — договорённость: кто говорит «стоп» на линии — все выдыхают и начинают заново. Без обид</li>
+          <li><strong>После смены</strong> — душ/спорт/сон: стресс копится физически, снимается физически</li>
+        </ul>
+        <div class="highlight">
+          <strong>Выгорание — профессиональный риск шефа.</strong> Признаки: цинизм, бессонница, потеря вкуса (буквально). Лечение: отпуск, смена режима, снижение часов. Кухня не простит героя-трупа.
+        </div>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">⚡</span> Техническая скорость: где на самом деле теряются минуты</div>
+        <ul>
+          <li><strong>Ходки</strong> — инвентарь не на месте: 20 ходок × 20 сек = 7 минут часа. Правило: всё в радиусе шага</li>
+          <li><strong>Поиск</strong> — контейнер без маркировки: 30 секунд на каждую «где соус?». Маркировка — скорость</li>
+          <li><strong>Пересборка</strong> — блюдо дождалось гарнир холодным. Правило сборки: всё в окно одним актом</li>
+          <li><strong>Посуда</strong> — нужная сковорода занята/грязна. Правило станции: двойной комплект горячего инвентаря</li>
+          <li><strong>Повтор</strong> — не прочитал заказ до конца, переделка. Fire back экономит минуты</li>
+        </ul>
+        <div class="formula">Разбор одной смены по этим 5 пунктам = −10–15% времени выдачи без новых людей и без ускорения рук</div>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">📚</span> Материалы для углублённого изучения</div>
+        <ul>
+          <li><strong>«Kitchen Confidential», Бурден</strong> — честно о стрессе профессии</li>
+          <li><strong>Модуль 10 ManagerBook</strong> — кризис-менеджмент ресторана</li>
+          <li><strong>Хронометраж смены (KDS-отчёт)</strong> — реальное время по блюдам, разбор цифрами</li>
+        </ul>
+      </div>`,
+    checklist: [
+      "Разобрать смену по 5 пунктам потери скорости (ходки/поиск/пересборка/посуда/повтор)",
+      "Ввести такт пауз: каждые 20 минут пика су-шеф озвучивает очередь",
+      "Договориться о «стоп-слове» с командой",
+      "Проверить двойной комплект горячего инвентаря на каждой станции",
+      "Составить честное стоп-меню на пик до его начала"
+    ],
+    quiz: [
+      { q: "Правило 7 минут на линии:", options: ["Суп варить 7 минут", "Готовое блюдо не ждёт недособранные дольше 7 минут — дальше пересборка", "Перерыв 7 минут в пике", "7 заказов за раз"], correct: 1, explanation: "Горячее блюдо, ждущее гарнир дольше 7 минут, теряет температуру и качество. Лучше пересобрать, чем выдать тёплое." },
+      { q: "Что такое «такт пауз»?", options: ["Обеденный перерыв", "Каждые 20 минут пика су-шеф озвучивает очередь и план", "Пауза между заказами", "Музыкальная пауза"], correct: 1, explanation: "Проговаривание очереди каждые 20 минут снимает панику и синхронизирует станции. Молчание в пик — потерянные заказы." },
+      { q: "Куда в первую очередь уходит время на линии?", options: ["В жарку", "В ходки, поиск, пересборку, посуду, переделки", "В ожидание официантов", "Не знаю"], correct: 1, explanation: "Технические потери: 20 ходок, поиск немаркированных соусов, пересборка, грязная сковорода, переделки. Их разбор даёт −10–15% времени выдачи." },
+      { q: "Признаки выгорания у шефа:", options: ["Жажда работы", "Цинизм, бессонница, потеря вкуса", "Рост скорости", "Хорошее настроение"], correct: 1, explanation: "Цинизм, бессонница и буквальная потеря вкуса — тревожные звонки. Лечится отдыхом и режимом, а не «поднажми»." },
+      { q: "Когда составлять стоп-лист?", options: ["Когда продукт кончился", "До пика, если есть сомнения в ресурсе станции", "Никогда", "После жалобы гостя"], correct: 1, explanation: "Стоп-лист в середине пика = паника и недовольные гости. Решение принимается до пика и озвучивается залу заранее." }
+    ]
+  },
+  {
+    id: 11,
+    title: "Разработка новых блюд: от идеи до меню",
+    time: "55 мин",
+    theory: `<div class="card fade-in">
+        <div class="card-title"><span class="card-icon">💡</span> Источники идей и фреймворк разработки</div>
+        <p>Новое блюдо — это не «придумал — в меню». Это продукт, который должен продаваться, приносить маржу и не ломать кухню.</p>
+        <ul>
+          <li><strong>Источники</strong>: сезон (трюфели, спаржа), тренды (ферментация, растительное), жалобы гостей, остатки (zero waste), коллаборации с поставщиками</li>
+          <li><strong>Концепция</strong>: какую историю блюдо рассказывает? «Локальная тыква с облепихой» продаёт лучше, чем «гарнир из тыквы»</li>
+          <li><strong>Технология</strong>: кто и как это будет готовить на реальной линии? Блюдо из 12 техпроцессов умрёт в пятницу</li>
+          <li><strong>Тест на линии</strong>: 2–3 тестовых смены «без объявления» — реальные заказы, реальный пик</li>
+        </ul>
+        <div class="formula">Фильтр новинки: вкус (9/10 командой) × маржа (фудкост в норме) × скорость (станция тянет в пике) × история (официанты расскажут за 10 секунд). Всё «нет» = доработка или отказ</div>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">🧪</span> Технологическая проработка</div>
+        <ul>
+          <li><strong>Техкарта до подачи в зал</strong>: brutto/netto/выход, техпроцесс по шагам, время, срок хранения заготовок и готового</li>
+          <li><strong>Калькуляция</strong>: фудкост блюда в норме заведения (обычно 25–32%)</li>
+          <li><strong>Тест стабильности</strong>: блюдо готовят трое разных поваров по техкарте — результат должен быть одинаковым. Не одинаков = техкарта неполная</li>
+          <li><strong>Сервировка и посуда</strong>: есть ли посуда в нужном количестве? Где закупить? Сколько стоит бою?</li>
+          <li><strong>Хранение</strong>: что с остатками? Заготовка на 2 дня или à la minute?</li>
+        </ul>
+        <div class="highlight highlight-danger">
+          <strong>Смерть новинки:</strong> блюдо без техкарты в меню. Каждый повар готовит «по-своему», фудкост разъезжается, гость получает три разных блюда под одним именем.
+        </div>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">📸</span> Внедрение: зал продаёт то, что понимает</div>
+        <ul>
+          <li><strong>Дегустация для зала</strong> — вся смена пробует и слышит историю от шефа (15 минут до смены)</li>
+          <li><strong>Текст для меню</strong>: 1 предложение, эмоция + факт («утиная ножка, томлёная 6 часов, с вишнёвым соусом»)</li>
+          <li><strong>Фото-стандарт</strong>: эталонная тарелка сфотографирована, фото у пасса</li>
+          <li><strong>Скрипт продажи</strong> официанта: 10 секунд — «это наша новинка, тыква из соседнего хозяйства, соус на облепихе»</li>
+          <li><strong>Тестовый период</strong>: 2 недели в меню → анализ продаж: меньше 10 порций/неделя при норме позиции = доработка или замена</li>
+        </ul>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">📉</span> Жизненный цикл блюда и вывод из меню</div>
+        <ul>
+          <li><strong>Запуск</strong> (2–4 нед): продвигаем, слушаем отзывы, правим техкарту</li>
+          <li><strong>Рост</strong>: закрепляем, следим за стабильностью</li>
+          <li><strong>Зрелость</strong>: основной вклад в выручку — контроль качества не расслабляем</li>
+          <li><strong>Старение</strong>: продажи падают 20–30% к прошлому сезону — ревизия: сезон закончился? конкуренты скопировали? усталость гостей?</li>
+          <li><strong>Вывод</strong>: без сожалений, но с анализом — почему умерло? знание причин делает следующие новинки точнее</li>
+        </ul>
+        <div class="highlight highlight-success">
+          <strong>Дисциплина меню:</strong> раз в сезон — ревизия всех позиций: продажи × маржа × сложность. «Собаки» уходят, легенды остаются, место освобождается новому.
+        </div>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">📚</span> Материалы для углублённого изучения</div>
+        <ul>
+          <li><strong>«The Flavor Bible», Пейдж и Дорненбург</strong> — что с чем сочетается: инструмент разработки</li>
+          <li><strong>«Ratio», Майкл Рулман</strong> — базовые пропорции: свобода внутри структуры</li>
+          <li><strong>«Соль. Жир. Кислота. Огонь», Самин Носрат</strong> — четыре столпа вкуса</li>
+        </ul>
+      </div>`,
+    checklist: [
+      "Провести дегустацию-комитет: отобрать 2–3 идеи новинок",
+      "Написать техкарту и калькуляцию до выхода в зал",
+      "Протестировать блюдо тремя поварами по техкарте",
+      "Провести дегустацию для всего зала с историей блюда",
+      "Через 2 недели: разбор продаж новинки (порций, фудкост, отзывы)"
+    ],
+    quiz: [
+      { q: "Что входит в фильтр новинки?", options: ["Только вкус", "Вкус × маржа × скорость × история", "Красивое фото", "Мнение шефа"], correct: 1, explanation: "Четыре критерия одновременно: команда ест на 9/10, фудкост в норме, станция тянет в пике, официанты расскажут за 10 секунд. Одно «нет» = доработка." },
+      { q: "Когда пишется техкарта нового блюда?", options: ["Через месяц в меню", "До выхода в зал", "Никогда — шеф помнит", "По требованию бухгалтерии"], correct: 1, explanation: "Техкарта — условие выхода блюда в зал. Без неё три повара приготовят три разных блюда, а фудкост разъедется." },
+      { q: "Тест стабильности блюда:", options: ["Один повар готовит идеально", "Трое поваров по техкарте дают одинаковый результат", "Гость сфотографировал", "Шеф одобрил"], correct: 1, explanation: "Если трое по одной техкарте дают разное — техкарта неполная. Именно она, а не «плохие повара»." },
+      { q: "Норма продаж новой позиции за тестовые 2 недели:", options: ["1–2 порции", "От 10 порций в неделю", "100 порций", "Не важно"], correct: 1, explanation: "Меньше 10 порций/неделю при нормальной позиции — сигнал: доработать вкус, цену, подачу или историю для зала." },
+      { q: "Как узнать, что блюдо «устало» и его пора менять?", options: ["По настроению", "Продажи падают 20–30% к прошлому сезону", "Когда продукт закончился", "Никогда"], correct: 1, explanation: "Падение продаж 20–30% к прошлому периоду — объективный маркер старения. Дальше: анализ причины и решение — реанимация или вывод." }
+    ]
+  },
+  {
+    id: 12,
+    title: "Сезонность кухни",
+    time: "40 мин",
+    theory: `<div class="card fade-in">
+        <div class="card-title"><span class="card-icon">🍂</span> Календарь сезонов: планируем за полгода</div>
+        <p>Сезонность — не сюрприз, а расписание. Шеф знает его на год вперёд.</p>
+        <div class="table-wrap">
+          <table>
+            <tr><th>Сезон</th><th>Продукты пика</th><th>Задача кухни</th></tr>
+            <tr><td>Весна (апр–май)</td><td>Спаржа, щавель, зелень, яйца</td><td>Обновление меню, лёгкие блюда</td></tr>
+            <tr><td>Лето (июн–авг)</td><td>Ягоды, овощи, зелень, рыба</td><td>Веранда, BBQ, холодные супы, десерты с ягодами</td></tr>
+            <tr><td>Осень (сен–ноя)</td><td>Грибы, тыква, капуста, дичь</td><td>Согревающие блюда, заготовки на зиму</td></tr>
+            <tr><td>Зима (дек–фев)</td><td>Корнеплоды, цитрусы, трюфели</td><td>Пик декабря, томления, цитрусовые десерты</td></tr>
+          </table>
+        </div>
+        <ul>
+          <li><strong>Продукт в пике = вкус и цена</strong>: тыква в октябре вкуснее и дешевле на 30–40%, чем в марте</li>
+          <li><strong>Договоры с фермерами</strong> — закладываем весной, фиксируем объёмы и цены летом</li>
+          <li><strong>Заготовки</strong>: маринады, варенья, ферментация осенью = зимнее меню дешевле и интереснее</li>
+        </ul>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">🎄</span> Пики сезона: новый год и майские</div>
+        <ul>
+          <li><strong>Декабрь</strong>: пик выручки года (+40–60%). План: корпоративы (фикс-меню), запас персонала, упрощённое меню на период корпоративов</li>
+          <li><strong>Январь–февраль</strong>: провал (−30–40%). План: горячие сеты, томления, работа с постоянными гостями, тренинги команды</li>
+          <li><strong>Майские</strong>: веранда/BBQ-пик. План: мангальное меню заготовлено, персонал усилен, детская программа</li>
+        </ul>
+        <div class="formula">Деньги декабря — это зарплата января. Финансовая подушка (модуль 10 ManagerBook) собирается именно в пиковые месяцы</div>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">🔄</span> Сезонная ротация меню: механика</div>
+        <ul>
+          <li><strong>Раз в сезон</strong> — 15–20% меню меняется (5–8 позиций)</li>
+          <li><strong>Обновляем</strong>: сезонные блюда, «собак», уставшие позиции</li>
+          <li><strong>Оставляем</strong>: легенды (ТОП продаж), хиты с маржой, визитные блюда</li>
+          <li><strong>Не трогаем в пик</strong>: меню не меняется в декабре и мае — только между сезонами</li>
+          <li><strong>Пилот</strong>: новинки сезона сначала «спецпредложением дня» — затем в меню по результатам</li>
+        </ul>
+        <div class="highlight highlight-success">
+          <strong>Заготовочный сезон (август–сентябрь):</strong> компоты, маринады, ферментированные овощи, варенья — зимнее меню становится уникальным и дешевле на закупках на 10–15%.
+        </div>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">📚</span> Материалы для углублённого изучения</div>
+        <ul>
+          <li><strong>Модуль 32-заготовка: сезонность (ManagerBook Том 4)</strong> — маркетинг сезонов</li>
+          <li><strong>Календарь фермерских ярмарок региона</strong> — прямые контакты производителей</li>
+          <li><strong>«Соль. Жир. Кислота. Огонь», Носрат</strong> — работа с сезонным вкусом</li>
+        </ul>
+      </div>`,
+    checklist: [
+      "Составить годовой календарь сезонов с продуктами пика",
+      "Запланировать даты ротации меню (между сезонами)",
+      "Договориться с 2–3 фермерами на сезон",
+      "Подготовить план декабря (корпоративы, персонал, меню)",
+      "Сделать заготовки сезона (маринады/ферментация) на зиму"
+    ],
+    quiz: [
+      { q: "Когда продукт в сезоне выгоднее всего?", options: ["Всегда одинаково", "В пике сезона: вкуснее и дешевле на 30–40%", "Зимой", "Весной"], correct: 1, explanation: "Продукт своего сезона — максимум вкуса при минимуме цены. Тыква в октябре и в марте — два разных продукта по качеству и себестоимости." },
+      { q: "Когда менять меню нельзя?", options: ["В любой день", "В пиковые месяцы (декабрь, май)", "По понедельникам", "Ночью"], correct: 1, explanation: "Ротация меню — между сезонами. В декабре и мае кухня на пределе: новые блюда и обучение зала превратят пик в провал." },
+      { q: "Что такое «заготовочный сезон»?", options: ["Отпуск поваров", "Август–сентябрь: маринады, ферментация, варенья на зиму", "Сезон грибов", "Закупка новогодних игрушек"], correct: 1, explanation: "Осень — время заготовок: компоты, ферментированные овощи, маринады. Зимнее меню становится уникальным и экономичнее." },
+      { q: "Сколько меню меняется за сезон?", options: ["Всё сразу", "15–20% позиций (5–8 блюд)", "Одно блюдо", "Ничего"], correct: 1, explanation: "Ротация 15–20%: новинки сезона и выход «собак». Остальное — легенды и хиты, которые и есть лицо кухни." },
+      { q: "Зачем пилот «спецпредложение дня»?", options: ["Развести гостей", "Тест новинки на реальных продажах до включения в меню", "Сбыть остатки", "Для веселья"], correct: 1, explanation: "Пилот показывает реальный спрос без риска меню: гость голосует деньгами. Сработало — в меню, нет — доработка без потерь." }
+    ]
+  },
+  {
+    id: 13,
+    title: "Связь кухни и зала",
+    time: "40 мин",
+    theory: `<div class="card fade-in">
+        <div class="card-title"><span class="card-icon">🔗</span> Кухня и зал: одна команда, один гость</div>
+        <p>Гость не различает «ошибку официанта» и «ошибку повара» — для него это один ресторан. Внутренние войны кухни и зала платит гость — и не возвращается.</p>
+        <ul>
+          <li><strong>Общий брифинг</strong> — 10 минут перед сменой: меню дня, остатки, 86-позиции, акценты. Зал знает, что продаёт; кухня знает, что обещают</li>
+          <li><strong>Правило 86</strong>: закончившееся блюдо объявляется залу немедленно — до того, как гость его заказал</li>
+          <li><strong>Официанты едят</strong>: дегустация каждой новинки залом — нельзя продать то, что не пробовал</li>
+          <li><strong>Кухня слышит гостя</strong>: отзывы по блюдам передаются на кухню раз в неделю (что хвалят, что возвращают и почему)</li>
+        </ul>
+        <div class="highlight highlight-danger">
+          <strong>Частая война:</strong> «официанты обещают что попало» vs «повара готовят час». Лечится не ссорами, а чек-листом: время каждого блюда написано в меню и известно залу. Обещали 40 минут — гость ждёт спокойно.
+        </div>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">🗣️</span> Передача заказа: точность на входе = качество на выходе</div>
+        <ul>
+          <li><strong>Модификаторы обязательны</strong>: «средняя прожарка», «без лука», «соус отдельно» — в POS, а не «на словах»</li>
+          <li><strong>Аллергия = красный флаг</strong> (модуль 17 ManagerBook): официант объявляет вслух, су-шеф подтверждает лично</li>
+          <li><strong>Fire back</strong> — кухня подтверждает заказ вслух (модуль 7)</li>
+          <li><strong>Вопрос кухне</strong>: официант, усомнившийся в заказе, спрашивает ДО подачи гостю, а не после</li>
+        </ul>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">🍷</span> Сомелье-шеф: база для разговора с залом</div>
+        <p>Шеф не обязан быть сомелье, но обязан давать залу «вкусовые ручки» к меню:</p>
+        <ul>
+          <li><strong>Пары</strong>: каждое ТОП-блюдо — 2 винные/напиточные пары (зал продаёт то, в чём уверен)</li>
+          <li><strong>Описание блюда словами</strong>: «томлёное, копчёная нота, кислинка облепихи» — зал передаёт гостю</li>
+          <li><strong>Совместные дегустации с баром</strong>: кухня + бар готовят пару «блюдо + напиток» — рост среднего чека обеих сторон</li>
+        </ul>
+        <div class="highlight highlight-success">
+          <strong>Метрика связки:</strong> доля заказов с напитком к блюду. Рост с 25% до 40% = +8–12% к среднему чеку без новых гостей.
+        </div>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">📚</span> Материалы для углублённого изучения</div>
+        <ul>
+          <li><strong>«Прошу к столу», Дэнни Мейер</strong> — культура «кухня + зал = гость»</li>
+          <li><strong>Модули 7 и 13 ManagerBook</strong> — сервис и коммуникация</li>
+          <li><strong>Чек-лист совместного брифинга</strong> — оформить и повесить у пасса</li>
+        </ul>
+      </div>`,
+    checklist: [
+      "Ввести общий брифинг кухни и зала за 10 минут до смены",
+      "Настроить мгновенное оповещение зала о 86-позициях",
+      "Провести дегустацию новинок для зала",
+      "Составить пары «блюдо + напиток» для ТОП-10 позиций",
+      "Ввести еженедельную передачу отзывов гостей на кухню"
+    ],
+    quiz: [
+      { q: "Как гость воспринимает конфликт кухни и зала?", options: ["Понимает кухню", "Понимает зал", "Никак: для него это один ресторан, и он платит чек обеим", "Не замечает"], correct: 2, explanation: "Гость не различает отделы — в его глазах есть одно заведение. Внутренние войны он оплачивает отсутствием возвращения." },
+      { q: "Что такое «правило 86»?", options: ["86 граммов порция", "Немедленное оповещение зала о закончившемся блюде", "86 дБ громкость", "Правило увольнения"], correct: 1, explanation: "86 (from «86'd») — позиция закончилась. Зал узнаёт до заказа гостя, а не после. Заказал — и нет = потерянное доверие." },
+      { q: "Зачем шеф даёт залу «вкусовые ручки»?", options: ["Для галочки", "Зал продаёт то, в чём уверен: пары блюдо+напиток растят чек", "Понравиться официантам", "Не нужно"], correct: 1, explanation: "Уверенный рассказ официанта продаёт. Доля заказов с напитком к блюду растёт с 25% до 40% = +8–12% к среднему чеку." },
+      { q: "Как объявляется аллерген-заказ на кухню?", options: ["В чеке мелким шрифтом", "Вслух + красный флаг, су-шеф подтверждает лично", "Не объявляется", "СМС шефу"], correct: 1, explanation: "Аллергия — выкрик вслух и личный контроль су-шефа. Это не пожелание «без лука», это безопасность гостя." },
+      { q: "Как лечится война «официанты обещают — повара опаздывают»?", options: ["Ссорами", "Чек-листом времени блюд, известным залу: обещаем то, что кухня выдаёт", "Увольнениями", "Игнором"], correct: 1, explanation: "Честное время каждого блюда в меню = зал обещает реальное. Обещали 40 минут — гость спокоен. Обещали 15 — гость зол." }
+    ]
+  },
+  {
+    id: 14,
+    title: "Личная траектория: путь к должности шефа",
+    time: "45 мин",
+    theory: `<div class="card fade-in">
+        <div class="card-title"><span class="card-icon">🧭</span> План развития: где вы сейчас и что дальше</div>
+        <p>Карьера повара не случается — её проектируют. Честная самооценка по пяти осям:</p>
+        <div class="table-wrap">
+          <table>
+            <tr><th>Ось</th><th>Су-шеф</th><th>Шеф</th></tr>
+            <tr><td>Техника</td><td>1–2 станции отлично</td><td>Понимание всех станций + кондитерка базово</td></tr>
+            <tr><td>Вкус</td><td>Контролирует свои блюда</td><td>Создаёт вкус меню целиком</td></tr>
+            <tr><td>Экономика</td><td>Знает фудкост смены</td><td>Управляет фудкостом, списаниями, калькуляцией</td></tr>
+            <tr><td>Люди</td><td>Держит дисциплину</td><td>Выращивает команду и преемников</td></tr>
+            <tr><td>Системы</td><td>Выполняет стандарты</td><td>Создаёт стандарты и технологию</td></tr>
+          </table>
+        </div>
+        <div class="formula">Правило: шефом становится тот, кто закрыл все 5 осей. «Лучший повар, которому неинтересны цифры» — это старший су-шеф навсегда</div>
+        <p><strong>План на год:</strong> одна слабая ось за квартал. Не всё сразу — последовательность.</p>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">🌍</span> Куда расти: опыты, которые ускоряют карьеру</div>
+        <ul>
+          <li><strong>Стажировки</strong> — 1–2 недели в чужой кухне (не ниже уровнем, а выше): новые техники, чужие системы</li>
+          <li><strong>Конкурсы</strong> — Bocuse d'Or, «Золотой колос», локальные чемпионаты: не ради медалей, а ради дедлайна и критики жюри</li>
+          <li><strong>Поп-апы и коллаборации</strong> — ужин с другим шефом: выход из зоны комфорта + сеть контактов</li>
+          <li><strong>Обмен опытом</strong> — встречи шефов города, ассоциации, Telegram-чаты коллег</li>
+          <li><strong>Английский чтением рецептур</strong> — 80% мировой кулинарной литературы недоступно в переводе</li>
+        </ul>
+        <div class="highlight highlight-success">
+          <strong>Портфолио:</strong> фото своих блюд в едином стиле, описания концепций, упоминания в СМИ. Шефа с портфолио видно из соседнего города.
+        </div>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">🤝</span> Переговоры о должности: как получить место шефа</div>
+        <ul>
+          <li><strong>Внутри компании:</strong> разговор с владельцем не «хочу больше», а с планом: «вот что я сделаю с фудкостом/командой за 6 месяцев»</li>
+          <li><strong>Снаружи:</strong> резюме-история (что запустил, что сэкономил, чему научил), портфолио, рекомендации</li>
+          <li><strong>Собеседование</strong>: вас оценивают вопросами о цифрах и людях, а не о технике жарки. Готовьтесь: фудкост, текучка, кейсы конфликтов</li>
+          <li><strong>Тестовое задание</strong>: меню под концепцию заведения с калькуляцией — вот что отличает шефа от повара</li>
+          <li><strong>Зарплата:</strong> фикс + KPI (фудкост, текучка, проверки). Шеф на чистом фиксе не управляет — он исполняет</li>
+        </ul>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">📚</span> Материалы для углублённого изучения</div>
+        <ul>
+          <li><strong>«Letters to a Young Chef», Дэниел Булюд</strong> — карьерные письма настоящего мастера</li>
+          <li><strong>«Kitchen Confidential», Бурден</strong> — честная цена профессии</li>
+          <li><strong>«От хорошего к великому», Коллинз</strong> — как растут профессионалы, а не должности</li>
+        </ul>
+      </div>`,
+    checklist: [
+      "Оценить себя по 5 осям (техника/вкус/экономика/люди/системы) — честно",
+      "Выбрать слабую ось квартала и план её закрытия",
+      "Записаться на стажировку или конкурс",
+      "Собрать портфолио: 10 лучших блюд с концепциями",
+      "Подготовить «план шефа на 6 месяцев» для разговора с владельцем"
+    ],
+    quiz: [
+      { q: "По скольким осям оценивается готовность к шефу?", options: ["По технике", "По вкусу", "По 5 осям: техника, вкус, экономика, люди, системы", "По стажу"], correct: 2, explanation: "Пять осей одновременно. Отсутствие одной (чаще экономики или людей) — потолок «старший су-шеф навсегда»." },
+      { q: "Зачем шефу конкурсы?", options: ["Ради медалей", "Дедлайн, критика жюри, выход из зоны комфорта", "Для Instagram", "Не нужны"], correct: 1, explanation: "Конкурс — это сжатый опыт: жёсткий дедлайн, взгляд со стороны, сеть контактов. Медаль — побочный продукт." },
+      { q: "О чём говорить с владельцем, претендуя на должность шефа?", options: ["О зарплате", "С планом: что сделаю с фудкостом, командой, меню за 6 месяцев", "О своих заслугах", "О конкурентах"], correct: 1, explanation: "Владелец покупает будущий результат, а не прошлые заслуги. План с цифрами — лучший аргумент." },
+      { q: "Что отличает тестовое задание шефа от повара?", options: ["Красивое блюдо", "Меню под концепцию с калькуляцией", "Скорость нарезки", "Умение кричать"], correct: 1, explanation: "Повар показывает технику, шеф — мышление: меню под концепцию заведения с экономикой. Это и проверяют." },
+      { q: "Правильная зарплата шефа:", options: ["Только фикс", "Фикс + KPI (фудкост, текучка, проверки)", "Только процент", "Как повезёт"], correct: 1, explanation: "Фикс + KPI связывает шефа с результатом заведения. Шеф на чистом фиксе исполняет, а не управляет." }
+    ]
+  },
+  {
+    id: 15,
+    title: "Контрольная точка: итоги и экзамен",
+    time: "60 мин",
+    theory: `<div class="card fade-in">
+        <div class="card-title"><span class="card-icon">🏁</span> Вы готовы к шефу, если…</div>
+        <p>Финальный чек-лист программы. Отметьте честно — каждый неотмеченный пункт это то, что отделяет вас от должности.</p>
+        <div class="highlight">
+          <strong>Экономика:</strong> я считаю фудкост сам, разбираю отклонения теория/факт, веду инвентаризацию группы А ежедневно<br>
+          <strong>Система:</strong> у меня есть техкарты на всё меню, заготовки планируются по прогнозу, остатки фиксируются в 22:00<br>
+          <strong>Команда:</strong> у меня есть наставники, грейды, учебные смены — и кухня работает без моих рук минимум один вечер в неделю<br>
+          <strong>Безопасность:</strong> я знаю все ККТ наизусть, журналы живые, термощуп — мой инструмент<br>
+          <strong>Меню:</strong> я веду жизненный цикл блюд, сезонную ротацию, тестирую новинки цифрами<br>
+          <strong>Развитие:</strong> у меня есть план на год, портфолио и следующая ступень
+        </div>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">📋</span> План первых 90 дней на должности шефа</div>
+        <ul>
+          <li><strong>Дни 1–30 — диагностика:</strong> фудкост факт vs теория, аудит техкарт, 1-to-1 со всей командой, карта поставщиков, журналы</li>
+          <li><strong>Дни 31–60 — быстрые победы:</strong> закрыть 3 главные дыры фудкоста, обновить 5 проблемных техкарт, ввести дегустации и общий брифинг</li>
+          <li><strong>Дни 61–90 — система:</strong> грейды и аттестации запущены, прогноз продаж работает, учебные смены в графике, план сезонной ротации меню</li>
+        </ul>
+        <div class="formula">Первые 90 дней решают больше, чем следующие 9 месяцев. Диагностика → быстрые победы → система. Никаких глобальных революций в первый месяц</div>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">⚠️</span> Типовые ошибки нового шефа</div>
+        <ul>
+          <li><strong>«Всё переделаю за неделю»</strong> — команда саботирует; меняйте по одному процессу за раз</li>
+          <li><strong>«Лучший друг команды»</strong> — дисциплина исчезает; шеф должен быть справедлив, а не любим</li>
+          <li><strong>«Только экономика»</strong> — фудкост падает, гости уходят: режем себестоимость, а не качество</li>
+          <li><strong>«Только креатив»</strong> — красивое меню с фудкостом 45% разорит заведение за полгода</li>
+          <li><strong>«Забыл про себя»</strong> — выгорание на новой должности встречается чаще, чем на старой. Отпуск и сон — часть системы</li>
+        </ul>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">📚</span> Материалы для углублённого изучения</div>
+        <ul>
+          <li><strong>Пройденные 14 модулей этого справочника</strong> — повторите чек-листы каждого</li>
+          <li><strong>«Управление кухней», Гвоздовская</strong> — держать под рукой как настольную книгу</li>
+          <li><strong>Следующий уровень: ManagerBook</strong> — глазами управляющего (модули 3, 5, 12, 14)</li>
+        </ul>
+      </div>`,
+    checklist: [
+      "Пройти все 14 модулей программы и закрыть их чек-листы",
+      "Сдать все тесты программы на 80%+",
+      "Составить свой план первых 90 дней на должности шефа",
+      "Провести самооценку по 5 осям и зафиксировать слабую ось",
+      "Показать результаты программы владельцу/управляющему и обсудить назначение"
+    ],
+    quiz: [
+      { q: "Порядок первых 90 дней нового шефа:", options: ["Революция сразу", "Диагностика → быстрые победы → система", "Сначала новое меню", "Три месяца наблюдения"], correct: 1, explanation: "Сначала диагностика (30 дней), затем 2–3 быстрые победы (30 дней), затем системные изменения (30 дней). Революция в первый месяц = саботаж команды." },
+      { q: "Сколько процессов менять одновременно?", options: ["Все сразу", "По одному за раз", "Ни одного", "Десять"], correct: 1, explanation: "Один процесс за раз: внедрили → закрепили → следующий. Параллельные изменения перегружают команду и ни одно не приживается." },
+      { q: "Что балансирует хороший шеф?", options: ["Экономику и креатив", "Только экономику", "Только креатив", "Ничего"], correct: 0, explanation: "Только экономика убивает гостя, только креатив убивает бизнес. Шеф держит обе стороны: вкус + фудкост в норме." },
+      { q: "Главная метрика взросления шефа:", options: ["Число новых блюд", "Кухня работает без его рук", "Количество переработок", "Размер ножа"], correct: 1, explanation: "Вечер, прошедший без рук шефа в тарелках, — истинный показатель готовности. Всё остальное — активность, а не результат." },
+      { q: "Кому показать результаты пройденной программы?", options: ["Никому", "Владельцу/управляющему — с планом на 90 дней", "Только команде", "Instagram"], correct: 1, explanation: "Программа завершается разговором о должности с конкретным планом. Знания без назначения — это хобби, а не карьера." }
+    ]
+  }
+  ,
+  {
+    id: 16,
+    title: "Шеф и экономика заведения: читаем P&L",
+    time: "55 мин",
+    theory: `<div class="card fade-in">
+        <div class="card-title"><span class="card-icon">📊</span> Почему шефу мало знать фудкост</div>
+        <p>Фудкост — это 28% картины. Зрелый шеф читает весь P&L, потому что его решения бьют по большинству строк: продукты, ФОТ, списания, энергию, оборудование.</p>
+        <div class="table-wrap">
+          <table>
+            <tr><th>Строка P&L</th><th>Норма</th><th>Как влияет шеф</th></tr>
+            <tr><td>Выручка от еды</td><td>—</td><td>Меню, качество, скорость, повторные визиты</td></tr>
+            <tr><td>Фудкост</td><td>25–32%</td><td>Техкарты, заготовки, списания, весовой контроль</td></tr>
+            <tr><td>ФОТ кухни</td><td>8–12% выручки</td><td>Расстановка, производительность, грейды</td></tr>
+            <tr><td>Списания</td><td>до 1% выручки</td><td>Прогнозы, FEFO, учёт отходов</td></tr>
+            <tr><td>Энергия/коммуналка</td><td>3–5%</td><td>Режим оборудования, чистка, дисциплина</td></tr>
+            <tr><td>EBITDA заведения</td><td>10–20%</td><td>Сумма всех вышеперечисленных решений</td></tr>
+          </table>
+        </div>
+        <div class="highlight highlight-success">
+          <strong>Мышление уровня шефа:</strong> «Эта новинка поднимет средний чек на 50₽» → «это +90 тыс. ₽/год выручки при 60 покрытиях». Любое решение переводится в рубли месяца и года.
+        </div>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">⚙️</span> Производительность кухни: три ключевые цифры</div>
+        <div class="formula">Выручка на повара = Выручка от еды ÷ число поваров в смене. Норма: 25–40 тыс. ₽ на повара за смену (зависит от формата)</div>
+        <div class="formula">Выручка на м² кухни = Выручка от еды ÷ площадь кухни. Кухня — самая дорогая недвижимость ресторана</div>
+        <div class="formula">Labor Cost кухни = ФОТ кухни ÷ выручка. Норма 8–12%: выше — либо людей много, либо выручки мало</div>
+        <p><strong>Как повышать без убийства команды:</strong> заготовки вместо à la minute, кросс-обучение вместо узких станций, техника (пароконвектомат, су-вид) вместо лишних рук, планирование смен по прогнозу, а не по штатке.</p>
+        <div class="highlight highlight-danger">
+          <strong>Ловушка экономии:</strong> «уволим одного повара» — выручка на повара вырастет, а в пик сорвётся очередь: −15% продаж = минус больше, чем зарплата уволенного. Экономим на процессе, не на людях в пик.
+        </div>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">💼</span> Бюджет кухни: как просить деньги у владельца</div>
+        <p>Владелец не выделяет деньги на «хотелки», он инвестирует в возврат. Формат просьбы:</p>
+        <ul>
+          <li><strong>Проблема в рублях</strong>: «Сковороды с антипригаром год: 15% брака яичниц в пик, жалобы, переделки»</li>
+          <li><strong>Решение и цена</strong>: «Комплект 6 шт — 48 000₽»</li>
+          <li><strong>Эффект и срок окупаемости</strong>: «Брак → 0, скорость станции +10%, окупаемость 3 месяца»</li>
+          <li><strong>Риск бездействия</strong>: «Дальше — списание посуды, жалобы, отток гостей завтрака»</li>
+        </ul>
+        <div class="formula">Правило: просьба без цифры возврата = стена. Просьба с ROI = разговор. Даже для 5-тысячной покупки</div>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">🤝</span> Шеф и управляющий: тандем вместо войны</div>
+        <p>Управляющий смотрит на кухню глазами гостя и цифр, шеф — глазами продукта и людей. Конфликт этих двух взглядов — норма; его задача — улучшать решения.</p>
+        <ul>
+          <li><strong>Еженедельная встреча 30 минут</strong>: фудкост, списания, ТОП продаж, жалобы, план недели. Никаких «поймаемся на кухне»</li>
+          <li><strong>Правило:</strong> в зале решает управляющий, в цеху — шеф. Спорное — на встрече, не на бегу</li>
+          <li><strong>Общая цель</strong>: EBITDA и NPS. Если кухня выигрывает ценой гостя — оба проиграли</li>
+        </ul>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">📚</span> Материалы для углублённого изучения</div>
+        <ul>
+          <li><strong>Модули 3 и 15 ManagerBook</strong> — финансовый менеджмент и бюджетирование (обязательно)</li>
+          <li><strong>«Операционный директор. Том 1», Гвоздовская</strong> — экономика ресторана для управленцев</li>
+          <li><strong>P&L из вашей бухгалтерии</strong> — возьмите прошлый месяц и разберите построчно</li>
+        </ul>
+      </div>`,
+    checklist: [
+      "Разобрать последний P&L заведения построчно с управляющим",
+      "Посчитать три цифры: выручка на повара, на м², Labor Cost кухни",
+      "Перевести одно своё решение в рубли года (новинка/списания/брак)",
+      "Составить бюджетную заявку по формате «проблема-решение-ROI»",
+      "Назначить еженедельную встречу с управляющим (30 минут)"
+    ],
+    quiz: [
+      { q: "Норма Labor Cost кухни:", options: ["20–25% выручки", "8–12% выручки", "3–5% выручки", "30% выручки"], correct: 1, explanation: "8–12% выручки — норма ФОТ кухни. Выше — либо избыточный штат, либо недостаточная выручка: разбирать вместе с управляющим." },
+      { q: "Как просить деньги у владельца?", options: ["«Нужно, всё износилось»", "Проблема в рублях → решение с ценой → эффект и окупаемость → риск бездействия", "Просить устно на бегу", "Не просить"], correct: 1, explanation: "Любая просьба — с цифрой возврата. Даже 5-тысячная покупка оформляется как инвестиция с окупаемостью — тогда это разговор, а не стена." },
+      { q: "Что такое «выручка на повара»?", options: ["Зарплата повара", "Выручка от еды за смену ÷ число поваров. Норма 25–40 тыс. ₽", "Средний чек", "Выручка ресторана"], correct: 1, explanation: "Ключевая метрика производительности кухни. 25–40 тыс. ₽ на повара за смену — норма; сильно ниже — кухня переукомплектована или недогружена." },
+      { q: "Кто решает в цеху, кто в зале?", options: ["Шеф везде", "Управляющий везде", "В цеху — шеф, в зале — управляющий; спорное — на встрече", "Кто громче"], correct: 2, explanation: "Чёткое разделение ответственности без двоевластия. Спорные вопросы выносятся на еженедельную встречу — не решаются на бегу." },
+      { q: "На чём нельзя экономить в пик?", options: ["На продуктах", "На людях: сорванная очередь минусует больше зарплаты сэкономленного", "На посуде", "На всём можно"], correct: 1, explanation: "Минус 15% продаж в пик из-за нехватки рук стоит дороже зарплаты повара. Экономим на процессе и заготовках, а не на людях в час пик." }
+    ]
+  },
+  {
+    id: 17,
+    title: "Кухня в сети: бренд-шеф и стандарты",
+    time: "50 мин",
+    theory: `<div class="card fade-in">
+        <div class="card-title"><span class="card-icon">🏢</span> От шефа заведения к бренд-шефу</div>
+        <p>Бренд-шеф отвечает не за одну кухню, а за <strong>одинаковость</strong> нескольких. Котлета в трёх точках должна быть одной котлетой.</p>
+        <div class="highlight">
+          <strong>Критерий перехода:</strong> ваша кухня работает без вас (модуль 1), есть обученный преемник (модуль 18), а система описана настолько, что новый повар воспроизводит блюдо по документам, а не по памяти о вас.
+        </div>
+        <p><strong>Главный инструмент бренд-шефа — не нож, а документ.</strong> Всё, что делает кухню кухней, должно быть записано: техкарты, стандарты заготовок, чек-листы открытия/закрытия, планы чисток, критерии приёмки.</p>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">📚</span> SOP-библиотека: язык, понятный всем</div>
+        <ul>
+          <li><strong>Техкарта-эталон</strong>: фото каждого этапа, веса, температура, время, вид на тарелке. Не текст «до готовности», а «жарка 3,5 мин, ядро +63°C»</li>
+          <li><strong>Стандарты заготовок</strong>: партии, маркировка, сроки — одинаковые на всех кухнях</li>
+          <li><strong>Чек-листы</strong>: открытие смены, закрытие, чистка (пароконвектомат, вытяжка, фритюр)</li>
+          <li><strong>Версии документов</strong>: у каждого документа — дата и номер версии. Старая техкарта в ящике стола — враг бренда</li>
+          <li><strong>Доступ</strong>: библиотека в облаке/приложении, актуальная версия у каждого су-шефа (ChefBook решает это)</li>
+        </ul>
+        <div class="highlight highlight-danger">
+          <strong>Тест зрелости системы:</strong> возьмите техкарту, отдайте повару из другого города. Блюдо получилось — система есть. Не получилось — у вас харизма, а не бренд.
+        </div>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">✅</span> Аудит кухонь: контроль без микроменеджмента</div>
+        <ul>
+          <li><strong>Чек-лист аудита</strong>: 30–40 пунктов (холод, маркировка, журналы, вкус, техкарты, чистота) — балльная шкала</li>
+          <li><strong>Регулярность</strong>: полный аудит каждой кухни — раз в квартал, короткий (10 пунктов) — ежемесячно</li>
+          <li><strong>Дегустация контроля</strong>: бренд-шеф пробует 5–7 ключевых блюд в каждой точке — вкус решает всё</li>
+          <li><strong>Рейтинг кухонь</strong>: баллы публикуются для всех шефов — здоровое соревнование, а не стыд</li>
+          <li><strong>Результат аудита</strong> — не наказание, а план: 3 пункта улучшения и сроки</li>
+        </ul>
+        <div class="formula">Бренд-шеф контролирует 20% того, что делает каждая кухня — но это 20% решают 80% впечатления гостя</div>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">🚀</span> Запуск новой кухни: первые 90 дней</div>
+        <ul>
+          <li><strong>До открытия</strong>: адаптация техкарт под оборудование точки, найм шефа кухни, обучение команды на эталонной кухне (1–2 недели)</li>
+          <li><strong>Неделя 1</strong>: бренд-шеф на новой кухне каждый день: стандарты, вкус, ритм</li>
+          <li><strong>Недели 2–4</strong>: посещение 2–3 раза в неделю, аудит по чек-листу каждую неделю</li>
+          <li><strong>Месяцы 2–3</strong>: еженедельные звонки/визиты, первый полный аудит на 30-й день</li>
+          <li><strong>Критерий «отпускания»</strong>: кухня стабильно проходит аудит и преемник держит качество без присутствия</li>
+        </ul>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">📚</span> Материалы для углублённого изучения</div>
+        <ul>
+          <li><strong>Модуль 27 ManagerBook</strong> — масштабирование и франшиза (взгляд управляющего)</li>
+          <li><strong>«Как выживают только параноики», Энди Гроув</strong> — управление в росте</li>
+          <li><strong>ChefBook (ваша база техкарт)</strong> — ядро SOP-библиотеки</li>
+        </ul>
+      </div>`,
+    checklist: [
+      "Проверить SOP-библиотеку: всё ли описано документами, а не «в голове»",
+      "Составить чек-лист аудита кухни (30–40 пунктов)",
+      "Провести дегустацию контроля всех ключевых блюд",
+      "Ввести рейтинг кухонь/публикацию результатов",
+      "Описать протокол запуска новой кухни (90 дней)"
+    ],
+    quiz: [
+      { q: "Главный инструмент бренд-шефа:", options: ["Нож", "Документ: техкарты и стандарты, воспроизводящие вкус без него", "Крик", "Личный контроль каждой смены"], correct: 1, explanation: "Бренд-шеф масштабирует не себя, а документы. Если блюдо воспроизводится по техкарте любым поваром — система работает." },
+      { q: "Тест зрелости системы:", options: ["Красивый офис", "Повар из другого города воспроизводит блюдо по техкарте", "Много сотрудников", "Дорогое оборудование"], correct: 1, explanation: "Чужой повар по документам = тест воспроизводимости. Не получилось — у вас харизма, а не бренд." },
+      { q: "Как часто полный аудит кухни?", options: ["Каждый день", "Раз в квартал (короткий — ежемесячно)", "Раз в год", "Никогда"], correct: 1, explanation: "Полный аудит раз в квартал, короткий (10 пунктов) — ежемесячно. Чаще — микроменеджмент, реже — потеря контроля." },
+      { q: "Куда превращается результат аудита?", options: ["В наказание", "В план: 3 пункта улучшения со сроками", "В стол", "В ссору"], correct: 1, explanation: "Аудит — не экзекуция, а инструмент улучшения: три главных пункта, сроки, контроль исполнения." },
+      { q: "Когда новую кухню можно «отпустить»?", options: ["Через неделю", "Когда стабильно проходит аудиты и держит качество без присутствия бренд-шефа", "Никогда", "По настроению"], correct: 1, explanation: "Критерий — стабильность: аудиты проходятся, преемник держит вкус. До этого — регулярные визиты и еженедельные проверки." }
+    ]
+  },
+  {
+    id: 18,
+    title: "Выращивание су-шефов и преемников",
+    time: "50 мин",
+    theory: `<div class="card fade-in">
+        <div class="card-title"><span class="card-icon">🌳</span> Правило преемника: без bench нет роста</div>
+        <p>Шеф не может расти (второе заведение, бренд-шеф, собственный проект), пока его кухня не работает без него. А она не работает без преемника.</p>
+        <div class="formula">Bench = обученный су-шеф + закреплённая система. Шеф с bench выбирает возможности. Шеф без bench заложник собственной кухни</div>
+        <ul>
+          <li><strong>Преемник не назначается — выращивается</strong>: 6–18 месяцев работы, а не «назначил лучшего повара»</li>
+          <li><strong>Преемник знает о плане</strong>: открытый разговор на старте — честнее, чё м интриги</li>
+          <li><strong>Критерий готовности преемника</strong>: 30 дней кухни без вас — и все показатели в норме</li>
+        </ul>
+        <div class="highlight highlight-danger">
+          <strong>Тест честности:</strong> когда вы в последний раз брали выходной посреди пика? Если не помните — у вас нет преемника, есть зависимость.
+        </div>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">🎓</span> Программа выращивания су-шефа</div>
+        <p>Ваш главный учебник для преемника — <strong>первый том этого справочника</strong>. Остальное — практика:</p>
+        <ul>
+          <li><strong>Этап 1 (1–2 мес):</strong> управление станцией + техкарты: су-шеф пишет техкарты под вашим контролем</li>
+          <li><strong>Этап 2 (2–4 мес):</strong> управление заготовками: прогноз, заявки, mise en place целиком</li>
+          <li><strong>Этап 3 (4–6 мес):</strong> управление сменой: брифинги, расстановка, пик — вы только наблюдаете</li>
+          <li><strong>Этап 4 (6–9 мес):</strong> управление неделей: графики, инвентаризация, разбор фудкоста</li>
+          <li><strong>Этап 5 (9–12 мес):</strong> полная автономия: вы в отпуске, он отвечает за всё</li>
+        </ul>
+        <div class="highlight highlight-success">
+          <strong>Наставничество оплачивается:</strong> бонус за каждый этап и крупный бонус за «защиту» (30 дней автономии с нормой показателей).
+        </div>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">🪜</span> Уровни автономии: как отпускать управление</div>
+        <div class="table-wrap">
+          <table>
+            <tr><th>Уровень</th><th>Что делает су-шеф</th><th>Что делаете вы</th></tr>
+            <tr><td>Делегирование задач</td><td>Выполняет заготовки по списку</td><td>Проверяете результат</td></tr>
+            <tr><td>Делегирование процесса</td><td>Планирует заготовки сам</td><td>Контролируете цифры</td></tr>
+            <tr><td>Делегирование смены</td><td>Ведёт смену целиком</td><td>Наблюдаете из зала раз в неделю</td></tr>
+            <tr><td>Делегирование кухни</td><td>Управляет неделей</td><td>Только метрики и развитие</td></tr>
+          </table>
+        </div>
+        <div class="formula">Ошибка роста: прыгать через уровень. Каждый уровень закрепляется 4–8 недель — прежде чем отдавать следующий</div>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">💛</span> Удержание сильных: почему они не уходят</div>
+        <ul>
+          <li><strong>Деньги по рынку</strong> — «мы семья» не платит ипотеку; отставание от рынка на 15% = резюме через полгода</li>
+          <li><strong>Рост виден</strong> — грейды, этапы преемника, публичные победы</li>
+          <li><strong>1-to-1 раз в месяц</strong> — 15 минут: что бесит, что интересно, что мешает</li>
+          <li><strong>Интересная работа</strong> — новинки, конкурсы, стажировки: скука убивает сильных быстрее денег</li>
+          <li><strong>Честность</strong> — о деньгах, планах, ошибках. Сильные люди прощают всё, кроме лжи</li>
+        </ul>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">📚</span> Материалы для углублённого изучения</div>
+        <ul>
+          <li><strong>SousChefBook Том 1</strong> — программа вашего преемника (модули 1–15)</li>
+          <li><strong>«Скорость доверия», Кови-мл.</strong> — делегирование через доверие</li>
+          <li><strong>Модули 4 и 25 ManagerBook</strong> — удержание и грейды персонала</li>
+        </ul>
+      </div>`,
+    checklist: [
+      "Назначить кандидата в преемники и провести открытый разговор",
+      "Составить план этапов по программе выращивания (5 этапов)",
+      "Отдать один процесс полностью (прогноз заготовок)",
+      "Взять выходной в пик и посмотреть, что будет",
+      "Назначить ежемесячные 1-to-1 со всеми ключевыми поварами"
+    ],
+    quiz: [
+      { q: "Критерий готовности преемника:", options: ["Хорошо готовит", "30 дней кухни без вас с нормой всех показателей", "Давно работает", "Друг владельца"], correct: 1, explanation: "Только полная автономия с цифрами в норме доказывает готовность. «Хорошо готовит» — это повар, а не управленец." },
+      { q: "Сколько этапов в программе выращивания су-шефа?", options: ["2", "3", "5", "10"], correct: 2, explanation: "Пять: станция → заготовки → смена → неделя → полная автономия. Каждый закрепляется 4–8 недель." },
+      { q: "Чем заканчивается «защита» преемника?", options: ["Тестом", "30 днями автономии с нормой показателей + крупным бонусом наставнику", "Приказом", "Праздником"], correct: 1, explanation: "Тридцать дней без вас — и цифры в норме. Это защита. Наставник получает крупный бонус за результат." },
+      { q: "Что удерживает сильных поваров сильнее денег?", options: ["Страх", "Рост, интересная работа, честность и деньги по рынку", "Принуждение", "Обещания"], correct: 1, explanation: "Деньги должны быть по рынку, но удерживают рост, интересные задачи и честность. Скука убивает сильных быстрее, чем низкая зарплата." },
+      { q: "Ошибка делегирования:", options: ["Отдавать постепенно", "Прыгать через уровни автономии", "Проверять результат", "Хвалить"], correct: 1, explanation: "Переход «задачи → сразу кухня» проваливается. Каждый уровень закрепляется неделями, прежде чем отдавать следующий." }
+    ]
+  }  ,
+  {
+    id: 19,
+    title: "Кухня как бренд: концепция и флагманы",
+    time: "45 мин",
+    theory: `<div class="card fade-in">
+        <div class="card-title"><span class="card-icon">🧭</span> Меню говорит за вас до первого слова</div>
+        <p>Гость изучает меню онлайн до визита. Кухня — половина обещания бренда: «здесь едят» или «здесь переплачивают за вид».</p>
+        <ul>
+          <li><strong>Три вопроса концепции кухни:</strong> Что мы готовим? Для кого? Чем отличаемся от соседей на карте?</li>
+          <li><strong>Связность</strong>: меню из 40 несвязанных блюд = отсутствие позиционирования. 15–25 блюд одной истории = бренд</li>
+          <li><strong>Цена как заявление</strong>: средний чек кухни должен соответствовать обещанию (семейный/бизнес/fine dining)</li>
+          <li><strong>Проверка:</strong> закройте логотип на фото блюда. Узнают ли ваш ресторан? Нет — кухня безлика</li>
+        </ul>
+        <div class="highlight">
+          <strong>Формула фирменного стиля кухни:</strong> 1 техника + 1 продуктовая история + 1 «фишка подачи». Пример: томление + локальные фермеры + посуда ручной работы.
+        </div>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">⭐</span> Флагманские блюда: 3–5 визиток</div>
+        <p>У каждого сильного ресторана есть блюда-легенды, ради которых приезжают. Правила флагманов:</p>
+        <ul>
+          <li><strong>Их нельзя снимать</strong> с меню без готовности потерять постоянных гостей (тест: 6 месяцев спецпредложением перед выводом)</li>
+          <li><strong>Они узнаваемы</strong>: вкус, подача, посуда — узнаются с первого взгляда</li>
+          <li><strong>Они стабильны</strong>: технология отработана так, что готовит любой повар станции одинаково</li>
+          <li><strong>Они фотогеничны</strong>: гости рекламируют блюдо сами — тарелка должна быть «инстаграмной» без кича</li>
+          <li><strong>Их история известна залу</strong>: официант рассказывает за 10 секунд</li>
+        </ul>
+        <div class="formula">Каждый флагман должен быть лучшей версией себя в городе. «Тоже стейк» — не флагман, а позиция</div>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">🚜</span> Локальность и история как капитал</div>
+        <ul>
+          <li><strong>Фермеры с именами</strong>: «сыр от хозяйства Ивановых, 40 км отсюда» — вкус + история + маркетинг в одном</li>
+          <li><strong>Региональная кухня</strong>: переработка локальных рецептов — дешевле импорта и уникальнее</li>
+          <li><strong>Сезон как событие</strong>: «трюфельные две недели», «первый спаржевый» — календарь поводов для PR</li>
+          <li><strong>Открытая кухня/закулисье</strong>: покажите продукт — доверие растёт быстрее, чем от любой рекламы</li>
+        </ul>
+        <div class="highlight highlight-success">
+          <strong>Zero waste как бренд</strong> (модуль 20 ManagerBook): «мы не выбрасываем хлеб» — история, которая одновременно экономит деньги и продаёт ценности.
+        </div>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">🎨</span> Визуальный язык кухни</div>
+        <ul>
+          <li><strong>Посуда</strong>: 2–3 линейки под характер блюд; странная посуда без функции = шум</li>
+          <li><strong>Гарнир-рамка</strong>: флагманы подаются на одной линейке посуды во всех точках/сменах</li>
+          <li><strong>Фото-эталоны</strong>: каждое блюдо снято эталонно и висит у пасса (модуль 2)</li>
+          <li><strong>Контент для соцсетей</strong>: процесс (огонь, нарезка) продаёт лучше готовой тарелки — снимайте кухню ежедневно</li>
+        </ul>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">📚</span> Материалы для углублённого изучения</div>
+        <ul>
+          <li><strong>«Прошу к столу», Дэнни Мейер</strong> — кухня как часть гостеприимства</li>
+          <li><strong>Модуль 8 ManagerBook</strong> — позиционирование и УТП</li>
+          <li><strong>Меню конкурентов города</strong> — раз в сезон: что у них, чего нет у вас</li>
+        </ul>
+      </div>`,
+    checklist: [
+      "Сформулировать концепцию кухни в одну фразу",
+      "Выбрать 3–5 флагманских блюд и проверить их стабильность",
+      "Составить истории флагманов для зала (по 10 секунд)",
+      "Найти 2–3 локальных поставщика с именами для меню",
+      "Проверить визуальный язык: посуда, фото, подача едины"
+    ],
+    quiz: [
+      { q: "Сколько блюд должно быть в фокусной концепции меню?", options: ["40+", "15–25 одной истории", "5", "100"], correct: 1, explanation: "15–25 связанных блюд — концепция. 40 разрозненных — отсутствие позиционирования: кухня всё умеет и ничем не запоминается." },
+      { q: "Можно ли снять флагманское блюдо с меню?", options: ["Да, устали", "Только после 6 месяцев как спецпредложения и анализа потерь", "Нельзя никогда", "По настроению"], correct: 1, explanation: "Флагманы — это причина возвращения постоянных гостей. Вывод — только через тест спроса и понимание потерь." },
+      { q: "Проверка «узнаваемости без логотипа»:", options: ["Закрыть глаза", "Фото блюда без логотипа узнают как ваш ресторан", "Спросить маму", "Не нужна"], correct: 1, explanation: "Если блюдо с закрытым логотипом не узнаётся — кухня безлика. Визуальный язык и вкус должны работать как подпись." },
+      { q: "Что даёт локальность кухне?", options: ["Ничего", "Вкус + историю + PR + экономию на логистике", "Только проблемы", "Дороговизну"], correct: 1, explanation: "Фермеры с именами дают одновременно качество, маркетинговую историю и часто лучшую цену на пике сезона." },
+      { q: "Что лучше продаёт в соцсетях:", options: ["Готовые тарелки", "Процесс: огонь, нарезка, командная работа", "Меню текстом", "Цены"], correct: 1, explanation: "Проесс — огонь, руки, продукт — вовлекает сильнее готового блюда. Снимайте кухню ежедневно, это бесплатный контент." }
+    ]
+  },
+  {
+    id: 20,
+    title: "Кризисы на кухне: протоколы",
+    time: "50 мин",
+    theory: `<div class="card fade-in">
+        <div class="card-title"><span class="card-icon">🚨</span> Подозрение на отравление: протокол</div>
+        <div class="highlight highlight-danger">
+          <strong>Золотое правило:</strong> жизнь и здоровье важнее репутации. Но репутация лечится только точными действиями — а не эмоциями.
+        </div>
+        <ul>
+          <li><strong>1. Скорая немедленно</strong> — 103/112. Никаких «само пройдёт»</li>
+          <li><strong>2. Зафиксировать</strong>: кто, что ел, во сколько, симптомы, контакты гостя</li>
+          <li><strong>3. Изъять образцы</strong>: остатки блюд, продукты, заготовки → холодильник с пломбой/маркировкой «не трогать»</li>
+          <li><strong>4. Уведомить управляющего и Роспотребнадзор</strong> — скрытие превращает инцидент в преступление</li>
+          <li><strong>5. Не признавать вину</strong> до экспертизы: «Мы всё зафиксировали, образцы на экспертизе, разберёмся»</li>
+          <li><strong>6. Пересмотреть ККТ</strong>: где сбой? Разморозка? Температура? Перекрёстное загрязнение?</li>
+        </ul>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">👮</span> Проверка на кухне: спокойная оборона</div>
+        <p>Инспектор Роспотребнадзора пришёл — это рабочая ситуация, а не катастрофа (подробно — модуль 24 ManagerBook).</p>
+        <ul>
+          <li><strong>Встречает назначенный</strong> (шеф/управляющий), проверяет документы инспектора</li>
+          <li><strong>Сопровождаем всё</strong>: каждое помещение — с вашим человеком</li>
+          <li><strong>Журналы живые</strong> — единственная настоящая защита. Отсутствие записи = нарушение, даже если всё чисто</li>
+          <li><strong>Протокол</strong>: читаем внимательно, не согласен — отметка + объяснение</li>
+          <li><strong>Никаких «решений на месте»</strong> — предписание приходит письменно, на него отвечаем письменно</li>
+        </ul>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">🔥</span> Пожар и аварии на кухне</div>
+        <ul>
+          <li><strong>Горящее масло</strong> — НИКОГДА вода: накрыть крышкой/плотной тканью, выключить плиту</li>
+          <li><strong>Пожар в вытяжке</strong> — углекислотный огнетушитель, вызвать 101, эвакуация зала немедленно</li>
+          <li><strong>Утечка газа</strong> — не включать/выключать свет, открыть окна, закрыть кран, 104</li>
+          <li><strong>Травма ножом/ожог</strong> — аптечка, при серьёзном — скорая; журнал несчастных случаев</li>
+          <li><strong>План эвакуации</strong> — каждый новый сотрудник проходит точку сбора в первую неделю</li>
+        </ul>
+        <div class="highlight highlight-success">
+          <strong>Дресс-контроль раз в квартал</strong>: все сценарии прогоняются за 20 минут до смены. В кризисе работает не знание, а рефлекс.
+        </div>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">⚡</span> Операционные кризисы: отключения и поломки в пик</div>
+        <ul>
+          <li><strong>Отключили газ/свет/воду</strong>: стоп-лист на сложные блюда немедленно, генератор (если есть), зал предупреждён честно</li>
+          <li><strong>Умерла посудомойка</strong>: одноразовая посуда как резерв, ручная мойка по приоритету</li>
+          <li><strong>Умер холодильник</strong>: переброска в соседние секции/заведение, лёд, приоритет — группа А</li>
+          <li><strong>Сорван поставка в пик</strong>: стоп-лист, замены по спецификации, честное меню на сегодня</li>
+          <li><strong>Массовая неявка</strong>: bench-резерв (модуль 18), упрощённое меню, управляющий на подхвате</li>
+        </ul>
+        <div class="formula">В любом операционном кризисе: 1) безопасность 2) честный стоп-лист 3) коммуникация с залом 4) фиксация для претензии/разбора</div>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">📚</span> Материалы для углублённого изучения</div>
+        <ul>
+          <li><strong>Модули 10 и 24 ManagerBook</strong> — кризис-менеджмент и СанПиН углублённо (обязательно)</li>
+          <li><strong>План эвакуации вашего заведения</strong> — перечитать и проверить дату последнего дресс-контроля</li>
+          <li><strong>МЧС: памятки по пожарной безопасности общепита</strong> — mchs.gov.ru</li>
+        </ul>
+      </div>`,
+    checklist: [
+      "Распечатать и повесить протокол «отравление» у пасса",
+      "Проверить аптечку, огнетушители, план эвакуации",
+      "Назначить уполномоченного на проверки",
+      "Провести дресс-контроль пожарной безопасности (20 минут)",
+      "Составить резервные сценарии: поломка холодильника, посудомойки, отключение газа"
+    ],
+    quiz: [
+      { q: "Первое действие при подозрении на отравление:", options: ["Спрятать остатки", "Вызвать скорую и зафиксировать данные гостя и блюд", "Извиниться и признать вину", "Ничего"], correct: 1, explanation: "Скорая — первым делом. Затем фиксация и изъятие образцов. Вина признаётся только после экспертизы: эмоции тут вредят и гостю, и репутации." },
+      { q: "Горящее масло в сковороде тушим:", options: ["Водой", "Накрываем крышкой и выключаем плиту", "Дуем", "Мукой"], correct: 1, explanation: "Вода на горящем масле = огненный шар. Только крышка/плотная ткань и отключение плиты." },
+      { q: "Что с образцами блюд при отравлении?", options: ["Выбросить", "Изъять и хранить в маркированном холодильнике для экспертизы", "Раздать команде", "Пересолить"], correct: 1, explanation: "Без образцов экспертиза невозможна, а спор с гостем — беспощаден. Храним в холоде с маркировкой «не трогать»." },
+      { q: "Дресс-контроль пожарной безопасности — как часто?", options: ["Раз в год", "Раз в квартал", "Никогда", "Раз в день"], correct: 1, explanation: "Квартальный 20-минутный прогон сценариев создаёт рефлекс. В кризисе работает не знание, а рефлекс." },
+      { q: "Порядок при любом операционном кризисе:", options: ["Паника", "Безопасность → честный стоп-лист → коммуникация с залом → фиксация", "Скрыть от зала", "Ждать"], correct: 1, explanation: "Четыре шага всегда одинаковы: люди, честный меню, информированный зал, зафиксированные причины для разбора и претензий." }
+    ]
+  },
+  {
+    id: 21,
+    title: "Личный бренд шефа: путь дальше",
+    time: "45 мин",
+    theory: `<div class="card fade-in">
+        <div class="card-title"><span class="card-icon">🌟</span> Зачем шефу личный бренд</div>
+        <p>Репутация шефа — актив, который работает на заведение и на карьеру одновременно:</p>
+        <ul>
+          <li><strong>Гости</strong> приходят «к шефу Иванову», а не «в какой-то ресторан» — лояльность личная</li>
+          <li><strong>Команда</strong> приходит работать к известному шефу — найм дешевле и быстрее</li>
+          <li><strong>Владелец</strong> платит за имя: известный шеф — часть маркетинга заведения</li>
+          <li><strong>Карьера</strong>: следующий проект, коллаборации, собственное дело — всё начинается с известности</li>
+        </ul>
+        <div class="formula">Личный бренд = узнаваемость × репутация × публичность. Публичность без репутации — пузырь, репутация без публичности — скрытый капитал</div>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">📱</span> Соцсети: что показывать</div>
+        <ul>
+          <li><strong>Кухня в работе</strong>: огонь, нарезка, продукт — процесс вовлекает больше готовых тарелок</li>
+          <li><strong>Люди</strong>: команда, обучение, победы поваров — «шеф, который растит людей» притягивает и гостей, и кадры</li>
+          <li><strong>Продукт</strong>: фермеры, поставки, сезон — знание источника = экспертность</li>
+          <li><strong>Личное дозированно</strong>: взгляды на профессию, путь, ошибки — лицо, а не личная жизнь</li>
+          <li><strong>Регулярность</strong>: 3–4 поста в неделю лучше, чем 30 в один день</li>
+        </ul>
+        <div class="highlight highlight-danger">
+          <strong>Чего не показывать:</strong> грязь и бардак (даже «рабочий момент»), жалобы на гостей и владельца, пьяные тусовки, чужие рецепты без ссылки. Интернет помнит всё.
+        </div>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">📰</span> PR: СМИ, рейтинги, конкурсы</div>
+        <ul>
+          <li><strong>Рейтинги</strong>: работа над присутствием в «100 лучших», Wheretoeat, ресторанных гидах — номинации начинаются с заявки</li>
+          <li><strong>СМИ и блогеры</strong>: предлагайте истории («шеф делает X из локального Y»), а не «напишите о нас»</li>
+          <li><strong>Интервью</strong>: готовьте 3–4 сильные мысли о профессии — их будут цитировать годами</li>
+          <li><strong>Конкурсы</strong> (модуль 14): Bocuse d'Or, «Золотой колос», локальные — медали + сеть + дисциплина</li>
+          <li><strong>Награды команды</strong> публикуем отдельно — растёт и бренд, и лояльность</li>
+        </ul>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">🤝</span> Коллаборации и поп-апы</div>
+        <ul>
+          <li><strong>Ужин двух шефов</strong>: обмен аудиториями и опытом, один вечер — две базы гостей</li>
+          <li><strong>Поп-ап вне заведения</strong>: ферма, крыша, маркет — новая аудитория «встречает» вашу кухню без риска нового ресторана</li>
+          <li><strong>Гастроли</strong>: готовите в другом городе/ресторане — маршрут роста известности</li>
+          <li><strong>Бренды</strong>: коллаборации с производителями (сыр, вино, техника) — их аудитория + ваши расходы на продукт</li>
+        </ul>
+        <div class="highlight highlight-success">
+          <strong>Правило коллаборации:</strong> берите проекты, где растёт ваша экспертность, а не только шум. Один сильный ужин в квартал лучше четырёх случайных.
+        </div>
+      </div>
+      <div class="card fade-in">
+        <div class="card-title"><span class="card-icon">📚</span> Материалы для углублённого изучения</div>
+        <ul>
+          <li><strong>«Неправильный бизнесмен», Аркадий Новиков</strong> — путь от повара к имени отрасли</li>
+          <li><strong>Модуль 8 ManagerBook</strong> — маркетинг ресторана (взгляд управляющего)</li>
+          <li><strong>Ресторанные премии и рейтинги РФ</strong> — календарь заявок на год</li>
+        </ul>
+      </div>`,
+    checklist: [
+      "Определить позиционирование личного бренда (3 слова)",
+      "Составить контент-план на месяц (3–4 поста в неделю)",
+      "Собрать портфолио и пресс-кит для СМИ",
+      "Выбрать один конкурс или рейтинг на ближайший год",
+      "Предложить одну коллаборацию шефам/брендам"
+    ],
+    quiz: [
+      { q: "Что даёт личный бренд шефа заведению?", options: ["Ничего", "Гости приходят «к шефу», команда приходит работать, владелец получает маркетинг", "Только проблемы", "Гордость"], correct: 1, explanation: "Имя шефа — актив обеих сторон: лояльность гостей, дешевле найм, сильнее маркетинг заведения, карьерный капитал самого шефа." },
+      { q: "Что вовлекает в соцсетях сильнее готовых тарелок?", options: ["Меню текстом", "Процесс: огонь, нарезка, люди, продукт", "Цены", "Отзывы"], correct: 1, explanation: "Процесс показывает мастерство и команду — это отличает живого шефа от фотоархива блюд." },
+      { q: "Чего в соцсетях показывать нельзя?", options: ["Кухню", "Команду", "Грязь, жалобы на гостей, пьяные тусовки, чужое без ссылки", "Продукты"], correct: 2, explanation: "Репутация строится годами и рушится одним скриншотом. Грязь и жалобы — то, что нельзя показать никогда." },
+      { q: "С кем коллаборация даёт обмен аудиториями?", options: ["С теми, кто тише", "С ужином двух шефов, поп-апами, гастролями", "С конкурентом по соседству ежедневно", "Ни с кем"], correct: 1, explanation: "Совместный ужин шефов — две базы гостей за один вечер. Поп-апы и гастроли знакомят новую аудиторию с вашей кухней." },
+      { q: "Как часто постить?", options: ["Раз в месяц", "3–4 поста в неделю регулярно", "30 постов в один день", "Никогда"], correct: 1, explanation: "Регулярность важнее интенсивности: алгоритмы и аудитория любят стабильный ритм. 3–4 поста в неделю — рабочая норма." }
+    ]
+  }
+];
+
+// ===================== STATE =====================
+let currentModule = 0;
+let currentTab = 'theory';
+let quizState = {};
+let checklistState = {};
+
+function loadState() {
+  try {
+    const s = JSON.parse(localStorage.getItem('sousChefBookState') || '{}');
+    currentModule = s.currentModule || 0;
+    quizState = s.quizState || {};
+    checklistState = s.checklistState || {};
+  } catch(e) {}
+}
+
+function saveState() {
+  localStorage.setItem('sousChefBookState', JSON.stringify({
+    currentModule, quizState, checklistState
+  }));
+}
+
+// ===================== NAVIGATION =====================
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.querySelector('.sidebar-overlay').classList.toggle('open');
+}
+
+function toggleSearch() {
+  document.getElementById('searchOverlay').classList.toggle('open');
+  if (document.getElementById('searchOverlay').classList.contains('open')) {
+    setTimeout(() => document.getElementById('searchInput').focus(), 100);
+  }
+}
+
+function renderNav() {
+  const nav = document.getElementById('navList');
+  let lastVol = 0;
+  nav.innerHTML = modules.map((m, i) => {
+    const done = isModuleDone(m.id);
+    const vol = m.id <= 15 ? 1 : m.id <= 21 ? 2 : 3;
+    let header = '';
+    if (vol !== lastVol) {
+      header = `<div style="padding:14px 20px 6px;font-size:0.65rem;text-transform:uppercase;letter-spacing:2px;color:var(--text-dim);">Том ${vol}</div>`;
+      lastVol = vol;
+    }
+    return header + `<div class="nav-item ${i === currentModule ? 'active' : ''}" onclick="goToModule(${i})">
+      <div class="nav-num">${m.id}</div>
+      <div class="nav-text">${m.title}</div>
+      <div class="nav-check ${done ? 'done' : ''}">${done ? '✓' : ''}</div>
+    </div>`;
+  }).join('');
+
+  // Progress
+  const doneCount = modules.filter(m => isModuleDone(m.id)).length;
+  const pct = Math.round((doneCount / modules.length) * 100);
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressText').textContent = pct + '% пройдено (' + doneCount + '/' + modules.length + ')';
+}
+
+function isModuleDone(mid) {
+  const m = modules.find(x => x.id === mid);
+  if (!m) return false;
+  const q = quizState[mid] || {};
+  const quizDone = Object.keys(q).length >= m.quiz.length && Object.values(q).every(v => v !== undefined);
+  const c = checklistState[mid] || [];
+  const checkDone = c.filter(Boolean).length >= m.checklist.length;
+  return quizDone && checkDone;
+}
+
+function goToModule(i) {
+  currentModule = i;
+  currentTab = 'theory';
+  saveState();
+  renderModule();
+  renderNav();
+  toggleSidebar();
+  window.scrollTo(0, 0);
+}
+
+function prevModule() {
+  if (currentModule > 0) goToModule(currentModule - 1);
+}
+
+function nextModule() {
+  if (currentModule < modules.length - 1) goToModule(currentModule + 1);
+}
+
+// ===================== MODULE RENDERING =====================
+function renderModule() {
+  const m = modules[currentModule];
+  const main = document.getElementById('main');
+  document.getElementById('footerCounter').textContent = (currentModule + 1) + ' / ' + modules.length;
+  document.getElementById('btnPrev').disabled = currentModule === 0;
+  document.getElementById('btnNext').disabled = currentModule === modules.length - 1;
+
+  let content = `
+    <div class="module-header fade-in">
+      <div class="module-num">Модуль ${m.id}</div>
+      <div class="module-title">${m.title}</div>
+      <div class="module-time">⏱ ${m.time} &nbsp;|&nbsp; 
+        <span class="tag tag-theory">Теория</span>
+        <span class="tag tag-practice">Практика</span>
+        <span class="tag tag-test">Тест</span>
+      </div>
+    </div>
+    <div class="tabs">
+      <div class="tab ${currentTab === 'theory' ? 'active' : ''}" onclick="switchTab('theory')">📖 Теория</div>
+      <div class="tab ${currentTab === 'checklist' ? 'active' : ''}" onclick="switchTab('checklist')">✅ Чек-лист</div>
+      <div class="tab ${currentTab === 'quiz' ? 'active' : ''}" onclick="switchTab('quiz')">🧩 Тест</div>
+      <div class="tab ${currentTab === 'materials' ? 'active' : ''}" onclick="switchTab('materials')">📚 Материалы</div>
+    </div>
+  `;
+
+  if (currentTab === 'theory') {
+    content += m.theory;
+  } else if (currentTab === 'checklist') {
+    content += renderChecklist(m);
+  } else if (currentTab === 'materials') {
+    content += renderMaterials(m);
+  } else {
+    content += renderQuiz(m);
+  }
+
+  main.innerHTML = content;
+}
+
+function switchTab(tab) {
+  currentTab = tab;
+  saveState();
+  renderModule();
+}
+
+// ===================== CHECKLIST =====================
+function renderChecklist(m) {
+  const checks = checklistState[m.id] || [];
+  let html = '<div class="card fade-in"><div class="card-title"><span class="card-icon">✅</span> Практический чек-лист</div>';
+  html += '<p>Отметьте пункты, которые вы уже освоили или выполнили:</p>';
+  m.checklist.forEach((item, i) => {
+    const done = checks[i] || false;
+    html += `<div class="checklist-item" onclick="toggleCheck(${m.id}, ${i})">
+      <div class="check-box ${done ? 'checked' : ''}">${done ? '✓' : ''}</div>
+      <div class="check-text ${done ? 'done' : ''}">${item}</div>
+    </div>`;
+  });
+  const doneCount = checks.filter(Boolean).length;
+  html += `<div style="margin-top:14px;font-size:0.85rem;color:var(--text-dim);">Выполнено: ${doneCount} из ${m.checklist.length}</div>`;
+  html += '</div>';
+  return html;
+}
+
+function toggleCheck(mid, idx) {
+  if (!checklistState[mid]) checklistState[mid] = [];
+  checklistState[mid][idx] = !checklistState[mid][idx];
+  saveState();
+  renderModule();
+  renderNav();
+}
+
+// ===================== QUIZ =====================
+function renderQuiz(m) {
+  const qState = quizState[m.id] || {};
+  let html = '<div class="card fade-in"><div class="card-title"><span class="card-icon">🧩</span> Проверочный тест</div>';
+  html += '<p>Ответьте на все вопросы, чтобы закрепить материал:</p></div>';
+
+  let correctCount = 0;
+  m.quiz.forEach((q, qi) => {
+    const answered = qState[qi];
+    const isCorrect = answered === q.correct;
+    if (isCorrect) correctCount++;
+
+    html += `<div class="card fade-in" style="margin-top:12px;">`;
+    html += `<div class="quiz-question">${qi + 1}. ${q.q}</div>`;
+    html += `<div class="quiz-options">`;
+    q.options.forEach((opt, oi) => {
+      let cls = '';
+      if (answered !== undefined) {
+        if (oi === q.correct) cls = 'correct';
+        else if (oi === answered && oi !== q.correct) cls = 'wrong';
+      } else if (answered === oi) {
+        cls = 'selected';
+      }
+      html += `<div class="quiz-option ${cls}" onclick="answerQuiz(${m.id}, ${qi}, ${oi})">
+        <div class="opt-letter">${String.fromCharCode(65 + oi)}</div>
+        <div>${opt}</div>
+      </div>`;
+    });
+    html += `</div>`;
+    if (answered !== undefined) {
+      html += `<div class="quiz-explanation show">${q.explanation}</div>`;
+    }
+    html += `</div>`;
+  });
+
+  // Result summary
+  if (Object.keys(qState).length >= m.quiz.length) {
+    const pct = Math.round((correctCount / m.quiz.length) * 100);
+    let msg = '';
+    if (pct >= 80) msg = 'Отлично! Вы хорошо усвоили материал.';
+    else if (pct >= 60) msg = 'Хорошо, но есть над чем поработать.';
+    else msg = 'Рекомендуем перечитать теорию и пройти тест снова.';
+
+    html += `<div class="card fade-in" style="margin-top:16px;">
+      <div class="quiz-result">
+        <div class="quiz-result-score">${pct}%</div>
+        <div class="quiz-result-text">${correctCount} из ${m.quiz.length} правильных ответов</div>
+        <div style="margin-top:8px;font-size:0.85rem;color:var(--text-dim);">${msg}</div>
+        <button class="btn" style="margin-top:16px;" onclick="resetQuiz(${m.id})">🔄 Пройти снова</button>
+      </div>
+    </div>`;
+  }
+
+  return html;
+}
+
+function answerQuiz(mid, qi, oi) {
+  if (!quizState[mid]) quizState[mid] = {};
+  if (quizState[mid][qi] !== undefined) return; // already answered
+  quizState[mid][qi] = oi;
+  saveState();
+  renderModule();
+  renderNav();
+}
+
+function resetQuiz(mid) {
+  quizState[mid] = {};
+  saveState();
+  renderModule();
+  renderNav();
+}
+
+// ===================== БИБЛИОТЕКА МАТЕРИАЛОВ =====================
+const materialsLibrary = {
+  books: [
+    { title: "Управление кухней: вкус, контроль, экономика, лидерство", author: "Виолетта Гвоздовская", level: "Главная книга", note: "Вся программа этой школы опирается на её методы" },
+    { title: "The Professional Chef", author: "Culinary Institute of America", level: "Техника", note: "Мировой стандарт учебника кухни: техника, станции, рецептуры" },
+    { title: "The Flavor Bible", author: "Карен Пейдж, Эндрю Дорненбург", level: "Вкус", note: "Тысячи сочетаний вкусов: инструмент разработки блюд" },
+    { title: "Ratio", author: "Майкл Рулман", level: "Техника", note: "Базовые пропорции: свобода внутри структуры" },
+    { title: "On Food and Cooking", author: "Гарольд Макги", level: "Наука", note: "Наука о еде: почему правила работают" },
+    { title: "Соль. Жир. Кислота. Огонь", author: "Самин Носрат", level: "Вкус", note: "Четыре столпа вкуса: учитесь чувствовать, а не следовать" },
+    { title: "Kitchen Confidential", author: "Энтони Бурден", level: "Профессия", note: "Честная анатомия кухни: чего не делать" },
+    { title: "Letters to a Young Chef", author: "Дэниел Булюд", level: "Карьера", note: "Письма мастера о ремесле и пути" },
+    { title: "Пять пороков команды", author: "Патрик Ленсиони", level: "Люди", note: "Почему команды разваливаются и что делать" },
+    { title: "Операционный директор. Том 1", author: "Виолетта Гвоздовская", level: "Экономика", note: "P&L и цифры заведения для управленцев" },
+    { title: "Как выживают только паранойки", author: "Энди Гроув", level: "Масштаб", note: "Управление в росте: практический интеллект" },
+    { title: "Неправильный бизнесмен", author: "Аркадий Новиков", level: "Вдохновение", note: "Путь от повара к имени отрасли" },
+    { title: "Прошу к столу", author: "Дэнни Мейер", level: "Бренд", note: "Кухня как часть гостеприимства и позиционирования" }
+  ],
+  courses: [
+    { title: "Технология продукции и организация общественного питания", source: "Университет СИНЕРГИЯ", note: "Профильное высшее/допобразование для шефов" },
+    { title: "Программы переподготовки поваров", source: "МГУПП (Московский гос. ун-т пищевых производств)", note: "Классика пищевого образования" },
+    { title: "Отбор и стажировки Bocuse d'Or Russia", source: "Bocuse d'Or Russia", note: "Конкурсный трек: дедлайн, жюри, рост" },
+    { title: "Ресторанный бизнес: управление предприятием питания", source: "НАДПО", note: "Диплом гос. образца, документооборот общепита" }
+  ],
+  blogs: [
+    { title: "Официальный YouTube Bocuse d'Or", source: "Bocuse d'Or", note: "Чемпионаты мира: техника лучших бригад" },
+    { title: "Блог iiko", source: "iiko.ru", note: "Кейсы автоматизации кухни и фудкост" },
+    { title: "Блог Poster", source: "joinposter.com/blog", note: "Практика кухни: техкарты, списания, заготовки" },
+    { title: "Telegram-каналы шефов", source: "Мухин, Ивлев, молодые шефы", note: "Рецепты, разборы, живая кухня отрасли" }
+  ]
+};
+
+function renderMaterials(m) {
+  const vol = m.id <= 15 ? 1 : m.id <= 21 ? 2 : 3;
+  let html = '<div class="card fade-in"><div class="card-title"><span class="card-icon">📖</span> Материалы модуля «' + m.title + '»</div>';
+  const match = m.theory.match(/Материалы для углублённого изучения<\/div>\s*<ul>([\s\S]*?)<\/ul>/);
+  if (match) {
+    html += '<p>Рекомендации из этого модуля:</p><ul style="margin-left:18px;">' + match[1].replace(/<li>/g, '<li>') + '</ul>';
+  } else {
+    html += '<p style="color:var(--text-dim);">Для этого модуля отдельный список не составлен — смотрите общую библиотеку ниже.</p>';
+  }
+  html += '</div>';
+
+  html += '<div class="card fade-in"><div class="card-title"><span class="card-icon">📚</span> Общая библиотека ManagerBook</div>';
+  html += '<p><span class="tag tag-theory">Книги</span><span class="tag tag-practice">Курсы</span><span class="tag tag-test">Блоги и каналы</span></p>';
+
+  html += '<div class="card-title" style="font-size:1rem;margin-top:10px;">📕 Книги</div><ul style="margin-left:18px;margin-bottom:14px;">';
+  materialsLibrary.books.forEach(b => {
+    html += '<li style="margin-bottom:10px;"><strong>«' + b.title + '»</strong>, ' + b.author + '<br><span style="font-size:0.78rem;color:var(--text-dim);">Уровень: ' + b.level + ' — ' + b.note + '</span></li>';
+  });
+  html += '</ul>';
+
+  html += '<div class="card-title" style="font-size:1rem;">🎓 Курсы</div><ul style="margin-left:18px;margin-bottom:14px;">';
+  materialsLibrary.courses.forEach(c => {
+    html += '<li style="margin-bottom:10px;"><strong>' + c.title + '</strong> — ' + c.source + '<br><span style="font-size:0.78rem;color:var(--text-dim);">' + c.note + '</span></li>';
+  });
+  html += '</ul>';
+
+  html += '<div class="card-title" style="font-size:1rem;">🌐 Блоги и каналы</div><ul style="margin-left:18px;">';
+  materialsLibrary.blogs.forEach(b => {
+    html += '<li style="margin-bottom:10px;"><strong>' + b.title + '</strong> (' + b.source + ')<br><span style="font-size:0.78rem;color:var(--text-dim);">' + b.note + '</span></li>';
+  });
+  html += '</ul></div>';
+  return html;
+}
+
+// ===================== SEARCH =====================
+function doSearch() {
+  const query = document.getElementById('searchInput').value.toLowerCase().trim();
+  const results = document.getElementById('searchResults');
+  if (!query) { results.innerHTML = ''; return; }
+
+  let hits = [];
+  modules.forEach((m, mi) => {
+    // Search in title
+    if (m.title.toLowerCase().includes(query)) {
+      hits.push({ module: mi, title: m.title, snippet: 'Модуль ' + m.id, type: 'title' });
+    }
+    // Search in theory (strip HTML)
+    const text = m.theory.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').toLowerCase();
+    if (text.includes(query)) {
+      const idx = text.indexOf(query);
+      const snippet = text.substring(Math.max(0, idx - 40), idx + query.length + 40);
+      hits.push({ module: mi, title: m.title, snippet: '...' + snippet + '...', type: 'content' });
+    }
+    // Search in quiz
+    m.quiz.forEach((q, qi) => {
+      if (q.q.toLowerCase().includes(query) || q.explanation.toLowerCase().includes(query)) {
+        hits.push({ module: mi, title: m.title + ' — Тест', snippet: q.q, type: 'quiz' });
+      }
+    });
+  });
+
+  results.innerHTML = hits.slice(0, 15).map(h => `
+    <div class="search-result-item" onclick="goToModule(${h.module}); toggleSearch();">
+      <div class="search-result-title">${h.title}</div>
+      <div class="search-result-snippet">${h.snippet}</div>
+    </div>
+  `).join('');
+
+  if (hits.length === 0) {
+    results.innerHTML = '<div style="text-align:center;color:var(--text-dim);padding:40px;">Ничего не найдено</div>';
+  }
+}
+
+
+// Register Service Worker for offline
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+
+// ===================== INIT =====================
+loadState();
+renderNav();
+renderModule();
+</script>
+</body>
+</html>
