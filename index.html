@@ -458,7 +458,6 @@
 
 </style>
 <meta name="theme-color" content="#0a0908">
-<link rel="manifest" href="manifest.json">
 <base target="_blank">
 </head>
 <body>
@@ -4679,15 +4678,738 @@ function doSearch() {
 }
 
 
-// Register Service Worker for offline
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js').catch(() => {});
-}
 
 // ===================== INIT =====================
 loadState();
 renderNav();
 renderModule();
+</script><!-- ============ PATCH v3.1 (2026-10-25) ============ -->
+<script>
+(function(){
+  // 1. Убираем PWA-хвосты (manifest + base), чтобы не было 404
+  document.querySelector('link[rel="manifest"]')?.remove();
+  document.querySelector('base')?.remove();
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister())).catch(()=>{});
+  }
+
+  // 2. Опечатки в данных (модули, уроки, чтения, библиотека)
+  const fixes = [
+    ['чё м интриги','чем интриги'],
+    ['болезли','болезни'],
+    ['Проесс','процесс'],
+    ['Углождение','Углубление'],
+    ['Углолнение','Углубление'],
+    ['лосошь','лосось'],
+    ['паранойки','параноики']
+  ];
+  function fix(s){
+    if(typeof s!=='string') return s;
+    for(const [a,b] of fixes) if(s.indexOf(a)>=0) s = s.split(a).join(b);
+    return s;
+  }
+  function walk(o){
+    if(o==null) return o;
+    if(typeof o==='string') return fix(o);
+    if(Array.isArray(o)){ for(let i=0;i<o.length;i++) o[i]=walk(o[i]); return o; }
+    if(typeof o==='object'){ for(const k in o) o[k]=walk(o[k]); return o; }
+    return o;
+  }
+  if(typeof modules!=='undefined') walk(modules);
+  if(typeof lessonMaterials!=='undefined') walk(lessonMaterials);
+  if(typeof readings!=='undefined') walk(readings);
+  if(typeof materialsLibrary!=='undefined') walk(materialsLibrary);
+
+  // 3. Новая логика «пройдено»: 80% теста (и правильных) + 80% чек-листа
+  window.isModuleDone = function(mid){
+    const m = modules.find(x=>x.id===mid);
+    if(!m) return false;
+    const q = quizState[mid] || {};
+    const need = Math.ceil(m.quiz.length*0.8);
+    const answered = Object.keys(q).length;
+    const correct = m.quiz.filter((qq,i)=>q[i]===qq.correct).length;
+    const quizDone = answered>=need && correct>=need;
+    const c = checklistState[mid] || [];
+    const checkDone = c.filter(Boolean).length >= Math.ceil(m.checklist.length*0.8);
+    return quizDone && checkDone;
+  };
+
+  // 4. Миграция чек-листов: если добавите/уберёте пункт — сохранения выровняются
+  modules.forEach(m=>{
+    if(!Array.isArray(checklistState[m.id])) checklistState[m.id]=[];
+    while(checklistState[m.id].length < m.checklist.length) checklistState[m.id].push(false);
+    checklistState[m.id] = checklistState[m.id].slice(0, m.checklist.length);
+  });
+
+  // 5. Версия в шапке
+  const sub = document.querySelector('.header-sub');
+  if(sub) sub.textContent = sub.textContent.replace('v3.0','v3.1');
+
+  // 6. Перерисовать с исправлениями
+  if(typeof renderNav==='function') renderNav();
+  if(typeof renderModule==='function') renderModule();
+})();
 </script>
+<!-- ============ PATCH v3.2 (2026-10-25) ============ -->
+<script>
+(function(){
+  // 1. Управление вкладками (прячем лишнее)
+  const originalRender = renderModule;
+  window.renderModule = function() {
+    originalRender();
+    const tabs = document.querySelectorAll('.tabs .tab');
+    if (tabs.length >= 6) {
+      // Прячем "Обучающий материал" (6-я вкладка) из модулей
+      tabs[5].style.display = 'none';
+
+      // Проверяем, есть ли материал урока для текущего модуля
+      const hasLesson = typeof lessonMaterials !== 'undefined' && lessonMaterials.some(lm => lm.moduleId === modules[currentModule].id);
+      if (!hasLesson) {
+        tabs[4].style.display = 'none'; // Прячем "Материал урока", если его нет
+        if (currentTab === 'lesson') {
+          currentTab = 'theory'; // Если мы были на пустой вкладке, кидаем на теорию
+          originalRender(); 
+        }
+      } else {
+        tabs[4].style.display = ''; // Показываем, если есть
+      }
+    }
+  };
+
+  // 2. Улучшенный поиск
+  window.doSearch = function() {
+    const query = document.getElementById('searchInput').value.toLowerCase().trim();
+    const results = document.getElementById('searchResults');
+    if (!query) { results.innerHTML = ''; return; }
+
+    let hits = [];
+    
+    // Ищем в модулях (теория, тесты, чек-листы)
+    modules.forEach((m, mi) => {
+      // Заголовок
+      if (m.title.toLowerCase().includes(query)) hits.push({ module: mi, title: m.title, snippet: 'Модуль ' + m.id, type: 'module' });
+      
+      // Теория
+      const text = m.theory.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').toLowerCase();
+      if (text.includes(query)) hits.push({ module: mi, title: m.title, snippet: '...' + text.substring(Math.max(0, text.indexOf(query) - 40), text.indexOf(query) + 40) + '...', type: 'module' });
+      
+      // Тест
+      m.quiz.forEach(q => {
+        if (q.q.toLowerCase().includes(query) || q.explanation.toLowerCase().includes(query)) hits.push({ module: mi, title: m.title + ' — Тест', snippet: q.q, type: 'module' });
+      });
+      
+      // Чек-лист (НОВОЕ)
+      m.checklist.forEach(c => {
+        if (c.toLowerCase().includes(query)) hits.push({ module: mi, title: m.title + ' — Чек-лист', snippet: c, type: 'module' });
+      });
+    });
+
+    // Ищем в Библиотеке (статьи) (НОВОЕ)
+    if (typeof readings !== 'undefined') {
+      readings.forEach(r => {
+        const text = r.html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').toLowerCase();
+        if (r.title.toLowerCase().includes(query) || text.includes(query)) {
+          hits.push({ module: 0, tab: 'readings', title: 'Библиотека: ' + r.title, snippet: '...' + text.substring(Math.max(0, text.indexOf(query) - 40), text.indexOf(query) + 40) + '...', type: 'readings' });
+        }
+      });
+    }
+
+    // Вывод результатов
+    results.innerHTML = hits.slice(0, 20).map(h => `
+      <div class="search-result-item" onclick="goToSearchResult(${h.module}, '${h.tab || 'theory'}'); toggleSearch();">
+        <div class="search-result-title">${h.title}</div>
+        <div class="search-result-snippet">${h.snippet}</div>
+      </div>
+    `).join('');
+
+    if (hits.length === 0) results.innerHTML = '<div style="text-align:center;color:var(--text-dim);padding:40px;">Ничего не найдено</div>';
+  };
+
+  window.goToSearchResult = function(mi, tab) {
+    goToModule(mi);
+    if (tab !== 'theory') switchTab(tab);
+  };
+  
+  // 3. Версия
+  const sub = document.querySelector('.header-sub');
+  if(sub) sub.textContent = sub.textContent.replace('v3.1','v3.2');
+
+  // Обновляем экран
+  if(typeof renderNav === 'function') renderNav();
+  if(typeof renderModule === 'function') renderModule();
+})();
+</script>
+<!-- ============ PATCH v3.4 (Глоссарий) ============ -->
+<script>
+(function(){
+  // 1. Данные глоссария
+  const glossaryData = [
+    { cat: "Экономика и цифры", items: [
+      { term: "Фудкост (Food Cost)", desc: "Доля стоимости продуктов в цене продажи. Например, если блюдо продается за 500₽, а продукты стоят 150₽ — фудкост 30%. Норма для ресторана 25–32%." },
+      { term: "Брутто (Brutto)", desc: "Вес сырого продукта, как вы его купили (вместе с костями, кожей, упаковкой)." },
+      { term: "Нетто (Netto)", desc: "Вес продукта после очистки и разделки (то, что реально пойдёт в блюдо)." },
+      { term: "Лейбор Коуст (Labor Cost)", desc: "Доля фонда оплаты труда (зарплат) кухни в выручке. Норма — 8–12%." },
+      { term: "Инвентаризация", desc: "Пересчёт остатков продуктов на складе для сверки с бухгалтерией и выявления недостач." },
+      { term: "Списания", desc: "Продукты, которые пришли в негодность (испортились, сгорели, уронили) и были утилизированы. Норма — до 1% от выручки." }
+    ]},
+    { cat: "Кухня и Технологии", items: [
+      { term: "Су-вид (Sous-vide)", desc: "Техника приготовления в вакууме на водяной бане при точной низкой температуре. Мясо получается идеально сочным. Требует вакууматора и термостата." },
+      { term: "Миз-ан-пляс (Mise en place)", desc: "Французский термин, означающий «всё на своих местах». Подготовка ингредиентов и инструментов до начала пика." },
+      { term: "Пасс (Pass)", desc: "Окно выдачи готовых блюд из кухни в зал. Место, где су-шеф проверяет тарелку перед официантом." },
+      { term: "Реакция Майяра", desc: "Химическая реакция между аминокислотами и сахарами при нагреве выше 140°C. Создаёт румяную корочку и тот самый «мясной» аромат." },
+      { term: "Конфи (Confit)", desc: "Медленное томление продукта (обычно мяса) в собственном жире при низкой температуре. Делает мясо невероятно мягким." },
+      { term: "Бланширование", desc: "Кратковременная варка в кипятке или обработка паром. Используется для очистки овощей или удаления горечи." }
+    ]},
+    { cat: "Безопасность и ХАССП", items: [
+      { term: "ХАССП (HACCP)", desc: "Система управления безопасностью пищевой продукции. Включает в себя контроль температур, чистоту и журналы." },
+      { term: "ККТ (Критическая контрольная точка)", desc: "Место на кухне, где риск отравления особенно высок. Например, температура в холодильнике или прожарка курицы." },
+      { term: "Опасная зона", desc: "Температурный диапазон от +4°C до +60°C. В нём бактерии размножаются быстрее всего. Продукт должен проходить эту зону максимально быстро." },
+      { term: "FIFO (ФИФО)", desc: "First In, First Out. Правило: «первым пришёл — первым ушёл». Старые продукты используем раньше новых." },
+      { term: "FEFO (ФЕФО)", desc: "First Expired, First Out. Правило: «первым истекает срок — первым ушёл». Важнее даты поставки." }
+    ]},
+    { cat: "Управление и Команда", items: [
+      { term: "Бенч (Bench)", desc: "Ваш кадровый резерв. Обученный су-шеф или повар, который может подменить вас в любой момент." },
+      { term: "Преемник", desc: "Человек, которого вы целенаправленно готовите на свою должность." },
+      { term: "SBI (Ситуация-Поведение-Влияние)", desc: "Метод обратной связи без крика. Сначала описываем ситуацию, потом поведение, потом влияние на результат." },
+      { term: "Онбординг", desc: "Адаптация нового сотрудника в первые дни/недели. Введение в правила кухни и стандарты." },
+      { term: "Текучка", desc: "Показатель, сколько людей уволилось за период. Высокая текучка — признак плохого управления или условий." }
+    ]}
+  ];
+
+  // 2. Внедряем кнопку в меню
+  const navList = document.getElementById('navList');
+  if (navList) {
+    const glossaryBtn = document.createElement('div');
+    glossaryBtn.className = 'nav-item';
+    glossaryBtn.innerHTML = '<div class="nav-num">📚</div><div class="nav-text">Глоссарий шефа</div>';
+    glossaryBtn.onclick = function() {
+      toggleSidebar();
+      renderGlossaryView();
+    };
+    // Вставляем кнопку после кнопки "Вся библиотека материалов"
+    const libraryBtn = document.querySelector('.nav-item[onclick="goToLibrary()"]');
+    if (libraryBtn) {
+      libraryBtn.after(glossaryBtn);
+    } else {
+      navList.prepend(glossaryBtn);
+    }
+  }
+
+  // 3. Функция отрисовки глоссария
+  window.renderGlossaryView = function() {
+    const main = document.getElementById('main');
+    if (!main) return;
+
+    // Скрываем футер навигации по модулям, так как это не модуль
+    document.getElementById('footerCounter').textContent = 'Глоссарий';
+    document.getElementById('btnPrev').style.display = 'none';
+    document.getElementById('btnNext').style.display = 'none';
+
+    let html = '<div class="module-header fade-in">';
+    html += '<div class="module-num">Справочник</div>';
+    html += '<div class="module-title">Глоссарий шефа</div>';
+    html += '<div class="module-time">Термины, без которых не бывает профессиональной кухни</div>';
+    html += '</div>';
+
+    html += '<div class="tabs" style="margin-bottom:20px;"><div class="tab active">📚 Все термины</div></div>';
+
+    glossaryData.forEach(group => {
+      html += `<div class="card fade-in" style="margin-bottom:20px;">`;
+      html += `<div class="card-title" style="color:var(--success);"><span class="card-icon">📌</span> ${group.cat}</div>`;
+      
+      group.items.forEach(item => {
+        html += `<div style="margin-bottom:16px; padding-bottom:12px; border-bottom:1px dashed rgba(201,184,150,0.1);">`;
+        html += `<strong style="color:var(--accent); font-size:1.05rem;">${item.term}</strong><br>`;
+        html += `<span style="font-size:0.9rem; color:var(--text); line-height:1.5; display:block; margin-top:4px;">${item.desc}</span>`;
+        html += `</div>`;
+      });
+      html += `</div>`;
+    });
+
+    main.innerHTML = html;
+    window.scrollTo(0, 0);
+  };
+
+  // 4. Восстановление футера при клике на модули (перехватываем клик по меню)
+  const originalGoToModule = window.goToModule;
+  window.goToModule = function(i) {
+    document.getElementById('btnPrev').style.display = '';
+    document.getElementById('btnNext').style.display = '';
+    if (typeof originalGoToModule === 'function') {
+      originalGoToModule(i);
+    }
+  };
+
+  // Также восстановим футер, если нажали на "Вся библиотека"
+  const originalGoToLibrary = window.goToLibrary;
+  window.goToLibrary = function() {
+    document.getElementById('btnPrev').style.display = '';
+    document.getElementById('btnNext').style.display = '';
+    if (typeof originalGoToLibrary === 'function') {
+      originalGoToLibrary();
+    }
+  };
+
+  // 5. Версия
+  const sub = document.querySelector('.header-sub');
+  if (sub) sub.textContent = sub.textContent.replace('v3.3', 'v3.4').replace('v3.2', 'v3.4').replace('v3.1', 'v3.4').replace('v3.0', 'v3.4');
+})();
+</script>
+<!-- ============ PATCH v3.5 (Расширение Глоссария) ============ -->
+<script>
+(function(){
+  // Ждём, пока прогрузится основной скрипт, и дополняем массив данных
+  const extendGlossary = setInterval(() => {
+    // Ищем, где хранится наша функция отрисовки
+    if (typeof window.renderGlossaryView === 'function') {
+      clearInterval(extendGlossary);
+
+      // Дополнительные термины
+      const extraTerms = [
+        { cat: "Меню и Продажи", items: [
+          { term: "Меню-инжиниринг (Звёзды, Лошади, Собаки)", desc: "Анализ блюд по марже и популярности. «Звёзды» — высокая маржа + популярность. «Собаки» — низкая маржа + непопулярность (кандидаты на вывод)." },
+          { term: "Флагман", desc: "Блюдо-визитка, ради которого гости возвращаются именно к вам. Должно быть лучшим в городе." },
+          { term: "Стоп-лист", desc: "Список позиций, которые закончились и недоступны для заказа. Объявляется залу немедленно." },
+          { term: "Zero waste", desc: "Безотходное производство. Обрезки, кости и очистки идут в бульоны, соусы или новые блюда." },
+          { term: "Поп-ап (Pop-up)", desc: "Временное гастрономическое мероприятие (ужин, коллаборация) вне стен ресторана." }
+        ]},
+        { cat: "Стандарты и Управление", items: [
+          { term: "SOP (Standard Operating Procedure)", desc: "Стандартная операционная процедура. Пошаговая инструкция (как открыть смену, как приготовить блюдо), которая работает без присутствия шефа." },
+          { term: "P&L (Profit and Loss)", desc: "Отчёт о прибылях и убытках. Показывает, сколько заработал ресторан и на что ушли деньги." },
+          { term: "ROI (Return on Investment)", desc: "Окупаемость инвестиций. Показывает, как быстро покупка (например, пароконвектомата) вернёт вложенные деньги." },
+          { term: "Спецификация", desc: "Письменное описание продукта (сорт, жирность, вес, температура), по которому вы принимаете товар от поставщика." },
+          { term: "Бракераж", desc: "Органолептическая проверка качества продуктов при приёмке (цвет, запах, консистенция)." }
+        ]},
+        { cat: "Сленг на линии", items: [
+          { term: "Fire back", desc: "Повторение заказа вслух для подтверждения. Обязательное правило на линии: «Не повторил = не принял»." },
+          { term: "86 (86-й)", desc: "Код, означающий, что блюдо закончилось. «86 борщ» — борща нет, не принимаем заказы." },
+          { term: "Бригада (Brigade de cuisine)", desc: "Система разделения кухни на станции (горячий цех, холодный, гриль, кондитерка), где у каждой зоны свой хозяин." },
+          { term: "Фонд (Fond)", desc: "Концентрированный бульон, уваренный в несколько раз. Основа для соусов." },
+          { term: "Демигляс", desc: "Тёмный фонд, уваренный до консистенции глазури. «Концентрат вкуса»." }
+        ]},
+        { cat: "Бизнес-форматы", items: [
+          { term: "Dark kitchen", desc: "Кухня без зала для гостей, работает только на доставку." },
+          { term: "Франшиза", desc: "Модель, при которой партнёр открывает ресторан по вашей системе и стандартам за свои деньги." },
+          { term: "Локальные истории", desc: "Фермеры, локальные продукты и события точки, которые делают ресторан уникальным, а не безликим филиалом." }
+        ]}
+      ];
+
+      // Вшиваем новые данные в оригинальную функцию отрисовки
+      const originalRender = window.renderGlossaryView;
+      window.renderGlossaryView = function() {
+        originalRender(); // Вызываем старую отрисовку (чтобы сработали скрипты скрытия футера)
+        
+        // Теперь дописываем новые блоки в конец
+        const main = document.getElementById('main');
+        if (main) {
+          extraTerms.forEach(group => {
+            let html = `<div class="card fade-in" style="margin-bottom:20px;">`;
+            html += `<div class="card-title" style="color:var(--success);"><span class="card-icon">📌</span> ${group.cat}</div>`;
+            
+            group.items.forEach(item => {
+              html += `<div style="margin-bottom:16px; padding-bottom:12px; border-bottom:1px dashed rgba(201,184,150,0.1);">`;
+              html += `<strong style="color:var(--accent); font-size:1.05rem;">${item.term}</strong><br>`;
+              html += `<span style="font-size:0.9rem; color:var(--text); line-height:1.5; display:block; margin-top:4px;">${item.desc}</span>`;
+              html += `</div>`;
+            });
+            html += `</div>`;
+            
+            // Вставляем новые категории перед закрывающим тегом, чтобы они шли после старых
+            main.insertAdjacentHTML('beforeend', html);
+          });
+        }
+      };
+
+      // Версия
+      const sub = document.querySelector('.header-sub');
+      if(sub) sub.textContent = sub.textContent.replace('v3.4','v3.5');
+    }
+  }, 100); // Проверяем каждые 100мс
+})();
+</script>
+<!-- ============ PATCH v3.6 (Внутренние ссылки) ============ -->
+<style>
+  .internal-link {
+    color: var(--success);
+    text-decoration: underline;
+    text-decoration-style: dotted;
+    text-decoration-color: var(--success);
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+  .internal-link:hover {
+    color: var(--accent);
+    text-decoration-color: var(--accent);
+  }
+  .glossary-highlight {
+    animation: flashHighlight 2s ease-out;
+    border-radius: 8px;
+    padding: 4px;
+  }
+  @keyframes flashHighlight {
+    0% { background-color: rgba(127, 176, 105, 0.4); }
+    100% { background-color: transparent; }
+  }
+</style>
+<script>
+(function(){
+  // 1. Словарь для поиска в тексте (как пишем -> какой термин в глоссарии ищем)
+  const linkTargets = {
+    'фудкост': 'Фудкост (Food Cost)',
+    'брутто': 'Брутто (Brutto)',
+    'нетто': 'Нетто (Netto)',
+    'су-вид': 'Су-вид (Sous-vide)',
+    'хассп': 'ХАССП (HACCP)',
+    'mise en place': 'Миз-ан-пляс (Mise en place)',
+    'миз-ан-пляс': 'Миз-ан-пляс (Mise en place)',
+    'пасс': 'Пасс (Pass)',
+    'fifo': 'FIFO (ФИФО)',
+    'fefo': 'FEFO (ФЕФО)',
+    'sop': 'SOP (Standard Operating Procedure)',
+    'p&l': 'P&L (Profit and Loss)',
+    'лейбор коуст': 'Лейбор Коуст (Labor Cost)',
+    'labor cost': 'Лейбор Коуст (Labor Cost)',
+    'инвентаризация': 'Инвентаризация',
+    'спецификация': 'Спецификация',
+    'бракераж': 'Бракераж',
+    'fire back': 'Fire back',
+    '86': '86 (86-й)'
+  };
+
+  // 2. Перехватываем отрисовку модуля, чтобы после отрисовки пройтись по тексту
+  const originalRenderModule = window.renderModule;
+  window.renderModule = function() {
+    originalRenderModule(); // Отрисовываем как обычно
+    linkifyContent();       // И сразу расставляем ссылки
+  };
+
+  // 3. Функция поиска и замены слов на ссылки
+  function linkifyContent() {
+    const main = document.getElementById('main');
+    if (!main) return;
+
+    // Проходим по всем текстовым узлам (чтобы не поломать HTML-теги)
+    const walker = document.createTreeWalker(main, NodeFilter.SHOW_TEXT, null, false);
+    const nodesToReplace = [];
+    let node;
+
+    while (node = walker.nextNode()) {
+      // Пропускаем скрипты и стили
+      if (node.parentElement.tagName === 'SCRIPT' || node.parentElement.tagName === 'STYLE') continue;
+      
+      let text = node.nodeValue;
+      let modified = false;
+
+      for (const [key, term] of Object.entries(linkTargets)) {
+        // Ищем точное совпадение слова (кириллица/латиница), чтобы не ломать другие слова
+        const regex = new RegExp(`(^|[^a-zA-Zа-яА-ЯёЁ])(${key})([^a-zA-Zа-яА-ЯёЁ]|$)`, 'gi');
+        
+        if (regex.test(text)) {
+          text = text.replace(regex, `$1<span class="internal-link" onclick="openGlossaryTerm('${term}')">$2</span>$3`);
+          modified = true;
+        }
+      }
+      if (modified) nodesToReplace.push({ node, text });
+    }
+
+    // Заменяем узлы
+    nodesToReplace.forEach(({ node, text }) => {
+      const span = document.createElement('span');
+      span.innerHTML = text;
+      node.parentNode.replaceChild(span, node);
+    });
+  }
+
+  // 4. Функция перехода в Глоссарий к конкретному термину
+  window.openGlossaryTerm = function(termName) {
+    // Вызываем нашу функцию отрисовки глоссария
+    window.renderGlossaryView();
+    
+    // Ждём чуть-чуть, пока прогрузится HTML, и скроллим
+    setTimeout(() => {
+      const main = document.getElementById('main');
+      // Ищем strong, текст которого совпадает с термином
+      const elements = Array.from(main.querySelectorAll('strong'));
+      const targetEl = elements.find(el => el.textContent.trim().includes(termName.replace(' (Food Cost)', '').replace(' (Brutto)', '').replace(' (Netto)', '').replace(' (Sous-vide)', '').replace(' (HACCP)', '').replace(' (Mise en place)', '').replace(' (Pass)', '').replace(' (ФИФО)', '').replace(' (ФЕФО)', '').replace(' (Standard Operating Procedure)', '').replace(' (Profit and Loss)', '').replace(' (Labor Cost)', '').trim()));
+
+      if (targetEl) {
+        const parent = targetEl.parentElement;
+        parent.classList.add('glossary-highlight'); // Подсветка
+        parent.scrollIntoView({ behavior: 'smooth', block: 'center' }); // Плавный скролл
+        
+        // Убираем подсветку через 2 секунды
+        setTimeout(() => parent.classList.remove('glossary-highlight'), 2000);
+      }
+    }, 100);
+  };
+
+  // 5. Версия
+  const sub = document.querySelector('.header-sub');
+  if(sub) sub.textContent = sub.textContent.replace('v3.5','v3.6');
+
+  // Запускаем линковку при первой загрузке
+  setTimeout(linkifyContent, 200);
+})();
+</script>
+<!-- ============ PATCH v3.7 (Кнопка возврата) ============ -->
+<script>
+(function(){
+  // Ждём загрузки основных скриптов
+  const waitForPatch = setInterval(() => {
+    if (typeof window.renderGlossaryView === 'function' && typeof window.openGlossaryTerm === 'function') {
+      clearInterval(waitForPatch);
+
+      // 1. Оборачиваем переход в глоссарий, чтобы запомнить место
+      const originalOpen = window.openGlossaryTerm;
+      window.openGlossaryTerm = function(termName) {
+        // Запоминаем модуль, вкладку и позицию скролла
+        window.returnTo = {
+          module: currentModule,
+          tab: currentTab,
+          scroll: window.scrollY
+        };
+        originalOpen(termName);
+      };
+
+      // 2. Оборачиваем отрисовку глоссария, чтобы добавить кнопку "Назад"
+      const originalRenderGlossary = window.renderGlossaryView;
+      window.renderGlossaryView = function() {
+        originalRenderGlossary();
+
+        if (window.returnTo) {
+          const main = document.getElementById('main');
+          if (main) {
+            const btn = document.createElement('button');
+            btn.className = 'btn';
+            btn.style.marginBottom = '20px';
+            btn.style.display = 'flex';
+            btn.style.alignItems = 'center';
+            btn.style.gap = '8px';
+            btn.innerHTML = '<span>←</span> Вернуться к чтению';
+
+            btn.onclick = function() {
+              const state = window.returnTo;
+              window.returnTo = null; // Сбрасываем
+              
+              // Возвращаемся в нужный модуль
+              goToModule(state.module);
+              
+              // Если была открыта другая вкладка (например, чек-лист), открываем её
+              if (state.tab !== 'theory') {
+                switchTab(state.tab);
+              }
+              
+              // Восстанавливаем позицию скролла (с задержкой, чтобы страница успела отрисоваться)
+              setTimeout(() => {
+                window.scrollTo(0, state.scroll);
+              }, 150);
+            };
+
+            // Вставляем кнопку в самый верх (перед заголовком глоссария)
+            main.prepend(btn);
+          }
+        }
+      };
+
+      // 3. Версия
+      const sub = document.querySelector('.header-sub');
+      if(sub) sub.textContent = sub.textContent.replace('v3.6','v3.7');
+    }
+  }, 100);
+})();
+</script>
+<!-- ============ PATCH v3.8 (Интерактивный практикум) ============ -->
+<style>
+  .calc-input {
+    width: 100%; padding: 10px;
+    background: rgba(10,9,8,0.6);
+    border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text);
+    font-size: 0.9rem; margin-bottom: 10px;
+  }
+  .calc-result {
+    font-size: 1.2rem; font-weight: 700; color: var(--accent);
+    margin-top: 10px; text-align: center;
+    background: rgba(201,184,150,0.1);
+    padding: 10px; border-radius: 10px;
+  }
+  .calc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  @media (max-width: 600px) { .calc-grid { grid-template-columns: 1fr; } }
+</style>
+<script>
+(function(){
+  // Ждём, пока прогрузятся все предыдущие патчи
+  const wait = setInterval(() => {
+    if (typeof window.renderModule === 'function' && document.querySelector('.tabs')) {
+      clearInterval(wait);
+
+      // 1. Добавляем кнопку вкладки "Практикум" в DOM (если её нет)
+      const tabsContainer = document.querySelector('.tabs');
+      if (tabsContainer && !document.querySelector('.tab-practice')) {
+        const practiceTab = document.createElement('div');
+        practiceTab.className = 'tab tab-practice';
+        practiceTab.innerHTML = '🛠️ Практикум';
+        practiceTab.onclick = () => switchTab('practice');
+        // Вставляем после вкладки "Чек-лист" (индекс 2)
+        tabsContainer.insertBefore(practiceTab, tabsContainer.children[2]);
+      }
+
+      // 2. Расширяем функцию переключения вкладок
+      const originalSwitchTab = window.switchTab;
+      window.switchTab = function(tab) {
+        if (tab === 'practice') {
+          currentTab = 'practice';
+          saveState();
+          renderModule();
+        } else {
+          originalSwitchTab(tab);
+        }
+      };
+
+      // 3. Перехватываем отрисовку модуля, чтобы добавить контент практикума
+      const originalRender = window.renderModule;
+      window.renderModule = function() {
+        originalRender();
+        
+        // Управляем активным классом для нашей новой вкладки
+        const tabs = document.querySelectorAll('.tabs .tab');
+        const practiceTab = document.querySelector('.tab-practice');
+        if (practiceTab) {
+          if (currentTab === 'practice') practiceTab.classList.add('active');
+          else practiceTab.classList.remove('active');
+        }
+
+        // Если выбрана вкладка практикума, подменяем контент
+        if (currentTab === 'practice') {
+          const main = document.getElementById('main');
+          const m = modules[currentModule];
+          if (main && m) {
+            main.innerHTML = renderPracticeContent(m);
+            attachCalcListeners(m);
+          }
+        }
+      };
+
+      // 4. Контент для практикума (Калькуляторы)
+      function renderPracticeContent(m) {
+        let html = `<div class="module-header fade-in">
+          <div class="module-num">Модуль ${m.id} · Практикум</div>
+          <div class="module-title">Интерактивные инструменты</div>
+          <div class="module-time">Введите данные и получите результат</div>
+        </div>`;
+
+        // Калькулятор Фудкоста (для модуля 3)
+        if (m.id === 3) {
+          const saved = JSON.parse(localStorage.getItem('calc_foodcost') || '{"cost":"","price":""}');
+          html += `<div class="card fade-in">
+            <div class="card-title"><span class="card-icon">🧮</span> Калькулятор фудкоста</div>
+            <p>Введите себестоимость блюда и цену в меню.</p>
+            <div class="calc-grid">
+              <div>
+                <label style="font-size:0.8rem;color:var(--text-dim);">Себестоимость (₽)</label>
+                <input type="number" id="fc_cost" class="calc-input" placeholder="Например: 150" value="${saved.cost}">
+              </div>
+              <div>
+                <label style="font-size:0.8rem;color:var(--text-dim);">Цена в меню (₽)</label>
+                <input type="number" id="fc_price" class="calc-input" placeholder="Например: 500" value="${saved.price}">
+              </div>
+            </div>
+            <div class="calc-result" id="fc_result">Фудкост: --%</div>
+            <div style="margin-top:10px; font-size:0.8rem; color:var(--text-dim);">
+              Норма: 25–32%. Выше 35% — блюдо убыточно. Ниже 20% — проверьте качество.
+            </div>
+          </div>`;
+        }
+
+        // Калькулятор Брутто/Нетто (для модуля 4)
+        if (m.id === 4) {
+          const saved = JSON.parse(localStorage.getItem('calc_brutto') || '{"netto":"","coef":""}');
+          html += `<div class="card fade-in">
+            <div class="card-title"><span class="card-icon">⚖️</span> Калькулятор закупки (Брутто)</div>
+            <p>Сколько сырого продукта нужно купить, чтобы получить нужный вес нетто?</p>
+            <div class="calc-grid">
+              <div>
+                <label style="font-size:0.8rem;color:var(--text-dim);">Нужно нетто (кг)</label>
+                <input type="number" id="br_netto" class="calc-input" placeholder="Например: 10" value="${saved.netto}">
+              </div>
+              <div>
+                <label style="font-size:0.8rem;color:var(--text-dim);">Коэф. выхода (нетто/брутто)</label>
+                <input type="number" step="0.01" id="br_coef" class="calc-input" placeholder="Например: 0.75" value="${saved.coef}">
+              </div>
+            </div>
+            <div class="calc-result" id="br_result">Нужно купить: -- кг</div>
+          </div>`;
+        }
+
+        // Для остальных модулей
+        if (m.id !== 3 && m.id !== 4) {
+          html += `<div class="card fade-in">
+            <div class="card-title"><span class="card-icon">🛠️</span> Практикум</div>
+            <p>Для этого модуля интерактивный инструмент появится позже. А пока — повторите чек-лист и пройдите тест.</p>
+          </div>`;
+        }
+
+        return html;
+      }
+
+      // 5. Логика работы калькуляторов
+      function attachCalcListeners(m) {
+        if (m.id === 3) {
+          const costInput = document.getElementById('fc_cost');
+          const priceInput = document.getElementById('fc_price');
+          const result = document.getElementById('fc_result');
+          
+          const calc = () => {
+            const c = parseFloat(costInput.value);
+            const p = parseFloat(priceInput.value);
+            if (c && p && p > 0) {
+              const fc = ((c / p) * 100).toFixed(1);
+              result.textContent = `Фудкост: ${fc}%`;
+              result.style.color = (fc >= 25 && fc <= 32) ? 'var(--success)' : 'var(--danger)';
+              localStorage.setItem('calc_foodcost', JSON.stringify({cost: costInput.value, price: priceInput.value}));
+            } else {
+              result.textContent = 'Фудкост: --%';
+              result.style.color = 'var(--accent)';
+            }
+          };
+          costInput.oninput = calc;
+          priceInput.oninput = calc;
+          calc();
+        }
+
+        if (m.id === 4) {
+          const nettoInput = document.getElementById('br_netto');
+          const coefInput = document.getElementById('br_coef');
+          const result = document.getElementById('br_result');
+          
+          const calc = () => {
+            const n = parseFloat(nettoInput.value);
+            const k = parseFloat(coefInput.value);
+            if (n && k && k > 0) {
+              const b = (n / k).toFixed(2);
+              result.textContent = `Нужно купить: ${b} кг`;
+              localStorage.setItem('calc_brutto', JSON.stringify({netto: nettoInput.value, coef: coefInput.value}));
+            } else {
+              result.textContent = 'Нужно купить: -- кг';
+            }
+          };
+          nettoInput.oninput = calc;
+          coefInput.oninput = calc;
+          calc();
+        }
+      }
+
+      // 6. Версия
+      const sub = document.querySelector('.header-sub');
+      if(sub) sub.textContent = sub.textContent.replace('v3.7','v3.8');
+
+      // Триггер первой отрисовки
+      if(typeof renderModule === 'function') renderModule();
+    }
+  }, 100);
+})();
+</script>
+<style>
 </body>
 </html>
